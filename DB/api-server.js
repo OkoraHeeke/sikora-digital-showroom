@@ -425,7 +425,89 @@ app.get('/api/measureparameters/:id/products', async (req, res) => {
   }
 });
 
-// === KOMPLEXE QUERIES ===
+// === PRODUKT-MESSPUNKT-ZUORDNUNGEN ===
+// Admin: Produkte zu Messpunkt zuordnen
+app.post('/api/measurepoints/:id/assign-products', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { productNames } = req.body;
+
+    if (!Array.isArray(productNames)) {
+      return sendResponse(res, null, new Error('productNames muss ein Array sein'));
+    }
+
+    // Zuerst alle bestehenden direkten Zuordnungen für diesen Messpunkt löschen
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Join_MeasurePoint_Product WHERE MeasurePoint_Id = ?', [id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Neue Zuordnungen erstellen
+    for (const productName of productNames) {
+      await new Promise((resolve, reject) => {
+        db.run(`
+          INSERT OR IGNORE INTO Join_MeasurePoint_Product (MeasurePoint_Id, Product_Name)
+          VALUES (?, ?)
+        `, [id, productName], function(err) {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+    }
+
+    sendResponse(res, {
+      message: `${productNames.length} Produkte erfolgreich zu Messpunkt ${id} zugeordnet`,
+      assignedProducts: productNames
+    });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Produkt von Messpunkt entfernen
+app.delete('/api/measurepoints/:id/unassign-product/:productName', async (req, res) => {
+  try {
+    const { id, productName } = req.params;
+
+    await new Promise((resolve, reject) => {
+      db.run(`
+        DELETE FROM Join_MeasurePoint_Product
+        WHERE MeasurePoint_Id = ? AND Product_Name = ?
+      `, [id, decodeURIComponent(productName)], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, {
+      message: `Produkt ${productName} erfolgreich von Messpunkt ${id} entfernt`
+    });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Direkte Zuordnungen für Messpunkt abrufen
+app.get('/api/measurepoints/:id/assigned-products', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const assignedProducts = await queryDb(`
+      SELECT p.* FROM Product p
+      JOIN Join_MeasurePoint_Product jmpp ON p.Name = jmpp.Product_Name
+      WHERE jmpp.MeasurePoint_Id = ?
+      ORDER BY p.Name
+    `, [id]);
+
+    sendResponse(res, assignedProducts);
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+
 // Produkte für einen bestimmten Messpunkt
 app.get('/api/measurepoints/:id/products', async (req, res) => {
   try {

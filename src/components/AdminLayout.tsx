@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import { 
-  Settings, 
-  Database, 
-  Package, 
-  MapPin, 
-  Layers, 
-  Tags, 
-  Ruler, 
-  BarChart3, 
+import {
+  Settings,
+  Database,
+  Package,
+  MapPin,
+  Layers,
+  Tags,
+  Ruler,
+  BarChart3,
   Upload,
   Users,
   Home,
@@ -24,11 +24,11 @@ interface AdminLayoutProps {
   onBackToApp: () => void;
 }
 
-const AdminLayout: React.FC<AdminLayoutProps> = ({ 
-  children, 
-  activeSection, 
+const AdminLayout: React.FC<AdminLayoutProps> = ({
+  children,
+  activeSection,
   onSectionChange,
-  onBackToApp 
+  onBackToApp
 }) => {
   const { t } = useLanguage();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -69,6 +69,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
       name: t('parameters', 'Messparameter', 'Measure Parameters'),
       icon: Ruler,
       description: t('parametersDesc', 'Messparameter definieren', 'Define Measurement Parameters')
+    },
+    {
+      id: 'mappings',
+      name: t('mappings', 'Produkt-Zuordnung', 'Product Mapping'),
+      icon: Settings,
+      description: t('mappingsDesc', 'Produkte zu Messpunkten zuordnen', 'Assign Products to Measure Points')
     },
     {
       id: 'objects3d',
@@ -133,14 +139,14 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
           {adminSections.map((section) => {
             const IconComponent = section.icon;
             const isActive = activeSection === section.id;
-            
+
             return (
               <button
                 key={section.id}
                 onClick={() => onSectionChange(section.id)}
                 className={`w-full flex items-center space-x-3 px-3 py-3 text-sm rounded-lg transition-all duration-200 ${
-                  isActive 
-                    ? 'bg-red-50 text-red-700 border border-red-200' 
+                  isActive
+                    ? 'bg-red-50 text-red-700 border border-red-200'
                     : 'text-gray-700 hover:bg-gray-50'
                 } ${sidebarCollapsed ? 'justify-center' : ''}`}
                 title={sidebarCollapsed ? section.name : ''}
@@ -200,4 +206,4 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   );
 };
 
-export default AdminLayout; 
+export default AdminLayout;

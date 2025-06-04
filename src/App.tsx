@@ -13,6 +13,7 @@ import SceneManagement from './components/admin/SceneManagement';
 import MeasurePointManagement from './components/admin/MeasurePointManagement';
 import CategoryManagement from './components/admin/CategoryManagement';
 import ParameterManagement from './components/admin/ParameterManagement';
+import ProductMeasurePointMapping from './components/admin/ProductMeasurePointMapping';
 import Object3DManagement from './components/admin/Object3DManagement';
 import UploadManagement from './components/admin/UploadManagement';
 import { LanguageProvider } from './contexts/LanguageContext';
@@ -204,7 +205,7 @@ function App() {
   const handleLoadToMeasurePoint = useCallback((productName: string, measurePointId?: string) => {
     // If measurePointId is provided, use it, otherwise use current selected measure point
     const targetMeasurePoint = measurePointId || state.selectedMeasurePoint;
-    
+
     if (targetMeasurePoint) {
       setState(prev => ({
         ...prev,
@@ -214,10 +215,10 @@ function App() {
         },
         selectedProduct: productName
       }));
-      
+
       // Load product details
       loadProductDetails(productName);
-      
+
       // Switch back to configuration view if we're in the catalog
       if (currentView === 'productCatalog') {
         setCurrentView('configuration');
@@ -346,6 +347,7 @@ function App() {
               {adminSection === 'measurepoints' && <MeasurePointManagement />}
               {adminSection === 'categories' && <CategoryManagement />}
               {adminSection === 'parameters' && <ParameterManagement />}
+              {adminSection === 'mappings' && <ProductMeasurePointMapping />}
               {adminSection === 'objects3d' && <Object3DManagement />}
               {adminSection === 'uploads' && <UploadManagement />}
             </AdminLayout>
@@ -425,7 +427,7 @@ function App() {
                   <div className="p-3 sm:p-4">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-sm font-medium text-gray-900">
-                        {state.selectedMeasurePoint 
+                        {state.selectedMeasurePoint
                           ? `Messpunkt: ${selectedMeasurePointData?.Name_DE || selectedMeasurePointData?.Name_EN || state.selectedMeasurePoint}`
                           : 'Kein Messpunkt ausgewählt'
                         }
@@ -437,7 +439,7 @@ function App() {
                         Katalog
                       </button>
                     </div>
-                    
+
                     {state.selectedMeasurePoint && state.products.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-xs text-gray-600">Verfügbare Produkte:</p>
