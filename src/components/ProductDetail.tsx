@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
-import { ArrowLeft, Download, FileText, Target, Check, RotateCcw, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Target, Check, RotateCcw, Maximize2, Info, Zap, Settings, Package } from 'lucide-react';
 import { databaseService, formatSikoraProductName } from '../services/database';
 import type { ProductWithDetails } from '../types';
 
@@ -41,8 +41,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'features' | 'installation'>('overview');
   const [model3DError, setModel3DError] = useState(false);
-  const [fullscreen3D, setFullscreen3D] = useState(false);
-  const [showLoadToMeasurePoint, setShowLoadToMeasurePoint] = useState(false);
+  const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [selectedMeasurePoint, setSelectedMeasurePoint] = useState<string>('');
 
   useEffect(() => {
@@ -98,17 +97,42 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const handleLoadToMeasurePoint = () => {
     if (selectedMeasurePoint && onLoadToMeasurePoint && product) {
       onLoadToMeasurePoint(product.Name, selectedMeasurePoint);
-      setShowLoadToMeasurePoint(false);
+      setShowLoadDialog(false);
       setSelectedMeasurePoint('');
     }
+  };
+
+  const getTechnologyType = (productName: string): string => {
+    if (productName.includes('X-RAY')) return 'X-RAY';
+    if (productName.includes('LASER')) return 'LASER';
+    if (productName.includes('SPARK')) return 'SPARK';
+    if (productName.includes('CENTERVIEW')) return 'CENTERVIEW';
+    if (productName.includes('CENTERWAVE')) return 'CENTERWAVE';
+    if (productName.includes('PREHEATER')) return 'PREHEATER';
+    if (productName.includes('ECOCONTROL')) return 'ECOCONTROL';
+    return 'SIKORA';
+  };
+
+  const getTechnologyColor = (tech: string): string => {
+    const colors = {
+      'X-RAY': 'from-red-500 to-red-600',
+      'LASER': 'from-blue-500 to-blue-600', 
+      'SPARK': 'from-yellow-500 to-yellow-600',
+      'CENTERVIEW': 'from-green-500 to-green-600',
+      'CENTERWAVE': 'from-indigo-500 to-indigo-600',
+      'PREHEATER': 'from-orange-500 to-orange-600',
+      'ECOCONTROL': 'from-teal-500 to-teal-600',
+      'SIKORA': 'from-sikora-blue to-sikora-cyan'
+    };
+    return colors[tech as keyof typeof colors] || colors.SIKORA;
   };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="loading-spinner w-8 h-8 mx-auto mb-4"></div>
-          <p className="text-gray-600">Lade Produktdetails...</p>
+          <div className="loading-spinner w-12 h-12 mx-auto mb-6"></div>
+          <p className="text-lg text-gray-600">Lade Produktdetails...</p>
         </div>
       </div>
     );
@@ -121,9 +145,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           <p className="text-xl mb-4">⚠️ {error}</p>
           <button 
             onClick={onBack}
-            className="px-4 py-2 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan"
+            className="px-6 py-3 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
           >
-            Zurück
+            Zurück zum Katalog
           </button>
         </div>
       </div>
@@ -131,92 +155,59 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   }
 
   const modelUrl = get3DModelUrl(product);
+  const technology = getTechnologyType(product.Name);
+  const techGradient = getTechnologyColor(technology);
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 flex-shrink-0">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div className="flex items-center space-x-3 sm:space-x-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Header */}
+      <div className={`bg-gradient-to-r ${techGradient} text-white`}>
+        <div className="container mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-6">
               <button
                 onClick={onBack}
-                className="flex items-center text-sikora-blue hover:text-sikora-cyan transition-colors"
+                className="flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
               >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Zurück
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                Zurück zum Katalog
               </button>
+              
               <div>
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue sikora-product-name">
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
+                    {technology}
+                  </span>
+                  <span className="text-white/80">SIKORA Messtechnik</span>
+                </div>
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
                   {formatSikoraProductName(product.Name)}
                 </h1>
-                <p className="text-sm text-gray-600">SIKORA Messtechnik</p>
+                <p className="text-white/90 text-lg max-w-2xl">
+                  Professionelle Messtechnik für industrielle Anwendungen
+                </p>
               </div>
             </div>
-            
+
             {/* Action Buttons */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              {/* Load to Measure Point */}
-              {onLoadToMeasurePoint && availableMeasurePoints.length > 0 && (
-                <div className="relative">
-                  <button
-                    onClick={() => setShowLoadToMeasurePoint(!showLoadToMeasurePoint)}
-                    className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
-                  >
-                    <Target className="w-4 h-4" />
-                    <span className="hidden sm:inline">Auf Messpunkt laden</span>
-                    <span className="sm:hidden">Laden</span>
-                  </button>
-                  
-                  {/* Dropdown */}
-                  {showLoadToMeasurePoint && (
-                    <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg min-w-64 z-50">
-                      <div className="p-3 border-b border-gray-100">
-                        <p className="text-sm font-medium text-gray-700">Messpunkt auswählen:</p>
-                      </div>
-                      <div className="p-2">
-                        {availableMeasurePoints.map((mp) => (
-                          <label key={mp.id} className="flex items-center p-2 hover:bg-gray-50 rounded cursor-pointer">
-                            <input
-                              type="radio"
-                              name="measurePoint"
-                              value={mp.id}
-                              checked={selectedMeasurePoint === mp.id}
-                              onChange={(e) => setSelectedMeasurePoint(e.target.value)}
-                              className="mr-3 text-sikora-blue"
-                            />
-                            <span className="text-sm">{mp.name}</span>
-                          </label>
-                        ))}
-                      </div>
-                      <div className="p-3 border-t border-gray-100 flex gap-2">
-                        <button
-                          onClick={() => setShowLoadToMeasurePoint(false)}
-                          className="flex-1 px-3 py-2 text-sm text-gray-600 bg-gray-100 rounded hover:bg-gray-200"
-                        >
-                          Abbrechen
-                        </button>
-                        <button
-                          onClick={handleLoadToMeasurePoint}
-                          disabled={!selectedMeasurePoint}
-                          className="flex-1 px-3 py-2 text-sm text-white bg-green-600 rounded hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
-                        >
-                          Laden
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {/* Datasheet Download */}
+            <div className="hidden lg:flex items-center gap-4">
               {product.datasheet && (
                 <button
                   onClick={handleDatasheetDownload}
-                  className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
+                  className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
                 >
-                  <Download className="w-4 h-4" />
-                  <span className="hidden sm:inline">Datenblatt</span>
+                  <Download className="w-5 h-5" />
+                  Datenblatt
+                </button>
+              )}
+              
+              {onLoadToMeasurePoint && availableMeasurePoints.length > 0 && (
+                <button
+                  onClick={() => setShowLoadDialog(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+                >
+                  <Target className="w-5 h-5" />
+                  Auf Messpunkt laden
                 </button>
               )}
             </div>
@@ -225,199 +216,278 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* 3D Model Viewer - Large and Prominent */}
-        <div className={`${fullscreen3D ? 'fixed inset-0 z-50' : 'flex-1 lg:flex-2'} bg-gradient-to-br from-gray-900 to-gray-800 relative`}>
-          <div className="w-full h-full">
-            {modelUrl && !model3DError ? (
-              <Canvas 
-                camera={{ position: [3, 3, 3], fov: 45 }}
-                className="w-full h-full"
-              >
-                <Suspense fallback={null}>
-                  <Environment preset="studio" />
-                  <ambientLight intensity={0.4} />
-                  <directionalLight position={[10, 10, 5]} intensity={1} />
-                  <ContactShadows position={[0, -1, 0]} opacity={0.3} scale={15} blur={2} />
-                  <Model3D url={modelUrl} productName={product.Name} />
-                  <OrbitControls 
-                    enablePan={true} 
-                    enableZoom={true} 
-                    enableRotate={true}
-                    autoRotate={true}
-                    autoRotateSpeed={0.5}
-                    minDistance={1}
-                    maxDistance={10}
-                  />
-                </Suspense>
-              </Canvas>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center text-gray-400">
-                  <Maximize2 className="w-16 h-16 mx-auto mb-4" />
-                  <p className="text-lg">3D-Modell nicht verfügbar</p>
-                  {modelUrl && (
-                    <p className="text-sm mt-2 opacity-70">Fehler beim Laden</p>
-                  )}
+      <div className="container mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          
+          {/* 3D Model - Large Center Panel */}
+          <div className="xl:col-span-2">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+              <div className="h-[500px] lg:h-[600px] relative bg-gradient-to-br from-gray-50 to-gray-100">
+                {modelUrl && !model3DError ? (
+                  <Canvas 
+                    camera={{ position: [4, 4, 4], fov: 45 }}
+                    className="w-full h-full"
+                  >
+                    <Suspense fallback={null}>
+                      <Environment preset="city" />
+                      <ambientLight intensity={0.6} />
+                      <directionalLight position={[10, 10, 5]} intensity={1.2} />
+                      <pointLight position={[-10, -10, -5]} intensity={0.5} />
+                      <ContactShadows position={[0, -2, 0]} opacity={0.4} scale={20} blur={2} />
+                      <Model3D url={modelUrl} productName={product.Name} />
+                      <OrbitControls 
+                        enablePan={true} 
+                        enableZoom={true} 
+                        enableRotate={true}
+                        autoRotate={true}
+                        autoRotateSpeed={0.8}
+                        minDistance={2}
+                        maxDistance={12}
+                        maxPolarAngle={Math.PI / 1.8}
+                      />
+                    </Suspense>
+                  </Canvas>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center text-gray-400">
+                      <Package className="w-20 h-20 mx-auto mb-4" />
+                      <p className="text-xl font-semibold">3D-Modell nicht verfügbar</p>
+                      <p className="text-sm mt-2">Dieses Produkt hat kein 3D-Modell hinterlegt</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* 3D Controls */}
+                <div className="absolute bottom-6 left-6 right-6">
+                  <div className="bg-black/80 backdrop-blur-md text-white rounded-xl p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">🖱️</span>
+                          <span>Rotieren</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">⚙️</span>
+                          <span>Zoomen</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">🔄</span>
+                          <span>Verschieben</span>
+                        </div>
+                      </div>
+                      <button 
+                        onClick={() => window.location.reload()}
+                        className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                        title="3D-Ansicht zurücksetzen"
+                      >
+                        <RotateCcw className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
+
+            {/* Mobile Action Buttons */}
+            <div className="lg:hidden mt-6 flex gap-4">
+              {product.datasheet && (
+                <button
+                  onClick={handleDatasheetDownload}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
+                >
+                  <Download className="w-5 h-5" />
+                  Datenblatt
+                </button>
+              )}
+              
+              {onLoadToMeasurePoint && availableMeasurePoints.length > 0 && (
+                <button
+                  onClick={() => setShowLoadDialog(true)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  <Target className="w-5 h-5" />
+                  Auf Messpunkt laden
+                </button>
+              )}
+            </div>
           </div>
-          
-          {/* 3D Controls Overlay */}
-          <div className="absolute bottom-4 left-4 right-4">
-            <div className="bg-black/70 backdrop-blur-sm text-white rounded-lg p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div className="text-xs sm:text-sm space-y-1">
-                  <p>🖱️ <span className="hidden sm:inline">Linke Maustaste: </span>Rotieren</p>
-                  <p>🔄 <span className="hidden sm:inline">Rechte Maustaste: </span>Verschieben</p>
-                  <p>⚙️ <span className="hidden sm:inline">Mausrad: </span>Zoomen</p>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded transition-colors"
-                    title="3D-Ansicht zurücksetzen"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setFullscreen3D(!fullscreen3D)}
-                    className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded transition-colors"
-                    title={fullscreen3D ? "Vollbild verlassen" : "Vollbild"}
-                  >
-                    {fullscreen3D ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-                  </button>
-                </div>
+
+          {/* Product Information Sidebar */}
+          <div className="xl:col-span-1">
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden sticky top-8">
+              
+              {/* Tab Navigation */}
+              <div className="border-b border-gray-200">
+                <nav className="flex">
+                  {[
+                    { id: 'overview', label: 'Überblick', icon: Info },
+                    { id: 'specifications', label: 'Daten', icon: Settings },
+                    { id: 'features', label: 'Features', icon: Zap },
+                    { id: 'installation', label: 'Setup', icon: FileText }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className={`flex-1 flex flex-col items-center gap-1 py-4 px-2 text-xs font-medium transition-colors ${
+                        activeTab === tab.id
+                          ? 'text-sikora-blue border-b-2 border-sikora-blue bg-blue-50'
+                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <tab.icon className="w-4 h-4" />
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6 max-h-[600px] overflow-y-auto">
+                {activeTab === 'overview' && (
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Produktbeschreibung</h3>
+                      <div 
+                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+                        dangerouslySetInnerHTML={{ 
+                          __html: product.HTMLDescription_DE || product.HTMLDescription_EN || 'Keine Beschreibung verfügbar'
+                        }}
+                      />
+                    </div>
+                    
+                    {product.advantages.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold text-gray-900 mb-4">Ihre Vorteile</h4>
+                        <div className="space-y-3">
+                          {product.advantages.map((advantage) => (
+                            <div key={advantage.Id} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                              <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700">{advantage.Advantage_DE || advantage.Advantage_EN}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'specifications' && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Technische Spezifikationen</h3>
+                    {product.specifications.length > 0 ? (
+                      <div className="space-y-3">
+                        {product.specifications.map((spec) => (
+                          <div key={spec.Id} className="border border-gray-200 rounded-lg p-4">
+                            <div className="font-medium text-gray-900 text-sm mb-2">
+                              {spec.Title_DE || spec.Title_EN}
+                            </div>
+                            <div className="text-sikora-blue font-semibold">
+                              {spec.Value_DE || spec.Value_EN}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Settings className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Keine technischen Daten verfügbar</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'features' && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Produktfeatures</h3>
+                    {product.features.length > 0 ? (
+                      <div className="space-y-3">
+                        {product.features.map((feature) => (
+                          <div key={feature.Id} className="flex items-start gap-3 p-3 border border-blue-200 rounded-lg bg-blue-50">
+                            <Zap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-gray-700">{feature.Feature_DE || feature.Feature_EN}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Zap className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Keine Features verfügbar</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'installation' && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Installation & Setup</h3>
+                    {product.installation ? (
+                      <div 
+                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+                        dangerouslySetInnerHTML={{ 
+                          __html: product.installation.InstallationInfo_DE || product.installation.InstallationInfo_EN 
+                        }}
+                      />
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                        <p>Keine Installationsinformationen verfügbar</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Product Information Panel */}
-        {!fullscreen3D && (
-          <div className="w-full lg:w-96 xl:w-[28rem] flex-shrink-0 bg-white border-l border-gray-200 flex flex-col">
-            {/* Tab Navigation */}
-            <div className="border-b border-gray-200 bg-gray-50">
-              <nav className="flex overflow-x-auto">
-                {[
-                  { id: 'overview', label: 'Überblick', icon: FileText },
-                  { id: 'specifications', label: 'Daten', icon: FileText },
-                  { id: 'features', label: 'Features', icon: FileText },
-                  { id: 'installation', label: 'Installation', icon: FileText }
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 py-3 px-3 sm:px-4 border-b-2 font-medium text-xs sm:text-sm whitespace-nowrap ${
-                      activeTab === tab.id
-                        ? 'border-sikora-blue text-sikora-blue bg-white'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }`}
-                  >
-                    <tab.icon className="w-4 h-4" />
-                    {tab.label}
-                  </button>
-                ))}
-              </nav>
-            </div>
-
-            {/* Tab Content */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              {activeTab === 'overview' && (
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-lg font-semibold text-sikora-blue mb-3">Produktbeschreibung</h3>
-                    <div 
-                      className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-                      dangerouslySetInnerHTML={{ 
-                        __html: product.HTMLDescription_DE || product.HTMLDescription_EN 
-                      }}
-                    />
-                  </div>
-                  
-                  {product.advantages.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-gray-900 mb-3">Vorteile</h4>
-                      <ul className="space-y-2">
-                        {product.advantages.map((advantage) => (
-                          <li key={advantage.Id} className="flex items-start">
-                            <Check className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-gray-700">{advantage.Advantage_DE || advantage.Advantage_EN}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'specifications' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-sikora-blue mb-4">Technische Spezifikationen</h3>
-                  {product.specifications.length > 0 ? (
-                    <div className="space-y-3">
-                      {product.specifications.map((spec) => (
-                        <div key={spec.Id} className="bg-gray-50 rounded-lg p-3">
-                          <div className="font-medium text-gray-900 text-sm mb-1">
-                            {spec.Title_DE || spec.Title_EN}
-                          </div>
-                          <div className="text-sikora-blue font-mono text-sm">
-                            {spec.Value_DE || spec.Value_EN}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 italic">Keine technischen Daten verfügbar</p>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'features' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-sikora-blue mb-4">Features</h3>
-                  {product.features.length > 0 ? (
-                    <ul className="space-y-3">
-                      {product.features.map((feature) => (
-                        <li key={feature.Id} className="flex items-start bg-blue-50 rounded-lg p-3">
-                          <span className="text-sikora-blue mr-2 mt-1 text-lg">•</span>
-                          <span className="text-sm text-gray-700">{feature.Feature_DE || feature.Feature_EN}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="text-gray-500 italic">Keine Features verfügbar</p>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'installation' && (
-                <div>
-                  <h3 className="text-lg font-semibold text-sikora-blue mb-4">Installation</h3>
-                  {product.installation ? (
-                    <div 
-                      className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-                      dangerouslySetInnerHTML={{ 
-                        __html: product.installation.InstallationInfo_DE || product.installation.InstallationInfo_EN 
-                      }}
-                    />
-                  ) : (
-                    <p className="text-gray-500 italic">Keine Installationsinformationen verfügbar</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Click outside to close dropdown */}
-      {showLoadToMeasurePoint && (
-        <div 
-          className="fixed inset-0 z-40"
-          onClick={() => setShowLoadToMeasurePoint(false)}
-        />
+      {/* Load to Measure Point Dialog */}
+      {showLoadDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Produkt auf Messpunkt laden</h3>
+              <p className="text-gray-600 mb-6">
+                Wählen Sie einen Messpunkt aus, um <strong>{formatSikoraProductName(product.Name)}</strong> zu konfigurieren:
+              </p>
+              
+              <div className="space-y-3 mb-6">
+                {availableMeasurePoints.map((mp) => (
+                  <label key={mp.id} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="measurePoint"
+                      value={mp.id}
+                      checked={selectedMeasurePoint === mp.id}
+                      onChange={(e) => setSelectedMeasurePoint(e.target.value)}
+                      className="mr-3 w-4 h-4 text-sikora-blue"
+                    />
+                    <span className="font-medium text-gray-900">{mp.name}</span>
+                  </label>
+                ))}
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowLoadDialog(false);
+                    setSelectedMeasurePoint('');
+                  }}
+                  className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Abbrechen
+                </button>
+                <button
+                  onClick={handleLoadToMeasurePoint}
+                  disabled={!selectedMeasurePoint}
+                  className="flex-1 px-4 py-3 text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                >
+                  Laden
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
