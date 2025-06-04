@@ -372,6 +372,8 @@ function App() {
               onBackToLineSelection={handleBackFromProductCatalog}
               onProductSelect={handleProductCatalogSelect}
               backButtonLabel={previousView === 'configuration' ? "Zurück zur Szene" : "Zurück zur Startseite"}
+              selectedMeasurePoint={previousView === 'configuration' ? selectedMeasurePointData : null}
+              showMeasurePointInfo={previousView === 'configuration'}
             />
           )}
 

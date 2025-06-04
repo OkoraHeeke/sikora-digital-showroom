@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, ArrowLeft, ExternalLink, Grid, List } from 'lucide-react';
+import { Search, Filter, ArrowLeft, ExternalLink, Grid, List, MapPin, Info } from 'lucide-react';
 import { databaseService, formatSikoraProductName } from '../services/database';
-import type { Product, ProductCategory } from '../types';
+import type { Product, ProductCategory, MeasurePoint } from '../types';
 
 interface ProductCatalogProps {
   onBackToLineSelection: () => void;
   onProductSelect?: (productName: string) => void;
   backButtonLabel?: string;
+  selectedMeasurePoint?: MeasurePoint | null;
+  showMeasurePointInfo?: boolean;
 }
 
 const ProductCatalog: React.FC<ProductCatalogProps> = ({ 
   onBackToLineSelection, 
   onProductSelect,
-  backButtonLabel = "Zurück"
+  backButtonLabel = "Zurück",
+  selectedMeasurePoint,
+  showMeasurePointInfo = false
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
@@ -215,6 +219,34 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
         </div>
       </div>
 
+      {/* Selected Measure Point Info */}
+      {showMeasurePointInfo && selectedMeasurePoint && (
+        <div className="bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white flex-shrink-0">
+          <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5" />
+                <span className="font-medium">Ausgewählter Messpunkt:</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold">
+                  {selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || `Messpunkt ${selectedMeasurePoint.Id}`}
+                </h3>
+                {(selectedMeasurePoint.Description_DE || selectedMeasurePoint.Description_EN) && (
+                  <p className="text-white/90 text-sm mt-1">
+                    {selectedMeasurePoint.Description_DE || selectedMeasurePoint.Description_EN}
+                  </p>
+                )}
+              </div>
+              <div className="hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
+                <Info className="w-4 h-4" />
+                <span className="text-sm">Produkte für diesen Messpunkt</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Enhanced Search and Filter Bar */}
       <div className="bg-white border-b border-gray-200 flex-shrink-0">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
@@ -224,7 +256,10 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
               <input
                 type="text"
-                placeholder="Produkte durchsuchen..."
+                placeholder={showMeasurePointInfo && selectedMeasurePoint 
+                  ? `Produkte für ${selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || 'Messpunkt'} durchsuchen...`
+                  : "Produkte durchsuchen..."
+                }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sikora-blue focus:border-transparent text-sm sm:text-base"
@@ -287,7 +322,13 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           {Object.keys(groupedProducts).length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">Keine Produkte gefunden.</p>
-              <p className="text-gray-400 mt-2">Versuchen Sie andere Suchbegriffe oder Filter.</p>
+              {showMeasurePointInfo && selectedMeasurePoint ? (
+                <p className="text-gray-400 mt-2">
+                  Keine Produkte für Messpunkt "{selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN}" gefunden.
+                </p>
+              ) : (
+                <p className="text-gray-400 mt-2">Versuchen Sie andere Suchbegriffe oder Filter.</p>
+              )}
               <button
                 onClick={clearAllFilters}
                 className="mt-4 px-4 py-2 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan"
