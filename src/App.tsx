@@ -12,22 +12,24 @@ import ProductManagement from './components/admin/ProductManagement';
 import SceneManagement from './components/admin/SceneManagement';
 import MeasurePointManagement from './components/admin/MeasurePointManagement';
 import CategoryManagement from './components/admin/CategoryManagement';
+import ParameterManagement from './components/admin/ParameterManagement';
+import Object3DManagement from './components/admin/Object3DManagement';
 import UploadManagement from './components/admin/UploadManagement';
 import { LanguageProvider } from './contexts/LanguageContext';
-import { 
-  databaseService, 
-  testConnection, 
+import {
+  databaseService,
+  testConnection,
   getSceneIdForLineType,
-  createFallbackData 
+  createFallbackData
 } from './services/database';
-import type { 
-  Scene, 
-  MeasurePoint, 
-  Product, 
+import type {
+  Scene,
+  MeasurePoint,
+  Product,
   ProductWithDetails,
-  LineType, 
+  LineType,
   ConfiguratorState,
-  SceneData 
+  SceneData
 } from './types';
 
 function App() {
@@ -64,16 +66,16 @@ function App() {
   useEffect(() => {
     const checkDatabase = async () => {
       updateState({ loading: true });
-      
+
       try {
         const connected = await testConnection();
         setDatabaseConnected(connected);
-        
+
         if (!connected) {
           console.warn('Database not connected, using fallback data');
           setError('Datenbank nicht verbunden - verwende Fallback-Daten');
         }
-        
+
         updateState({ loading: false });
       } catch (err) {
         console.error('Database connection check failed:', err);
@@ -90,13 +92,13 @@ function App() {
   const loadSceneData = useCallback(async (lineType: LineType) => {
     try {
       updateState({ loading: true });
-      
+
       if (!databaseConnected) {
         // Use fallback data if database is not connected
         const fallbackData = createFallbackData();
         const scene = fallbackData.scenes[0];
         const measurePoints = fallbackData.measurePoints;
-        
+
         const sceneData: SceneData = {
           scene,
           staticObjects: [{
@@ -110,10 +112,10 @@ function App() {
         };
 
         setSceneData(sceneData);
-        updateState({ 
+        updateState({
           selectedScene: scene,
           measurePoints: measurePoints,
-          loading: false 
+          loading: false
         });
         return;
       }
@@ -121,12 +123,12 @@ function App() {
       // Use real database
       const sceneId = getSceneIdForLineType(lineType);
       const sceneData = await databaseService.getSceneData(sceneId);
-      
+
       setSceneData(sceneData);
-      updateState({ 
+      updateState({
         selectedScene: sceneData.scene,
         measurePoints: sceneData.measurePoints,
-        loading: false 
+        loading: false
       });
 
     } catch (err) {
@@ -140,12 +142,12 @@ function App() {
   const loadProductDetails = useCallback(async (productName: string) => {
     try {
       updateState({ loading: true });
-      
+
       if (!databaseConnected) {
         updateState({ loading: false });
         return;
       }
-      
+
       const productDetails = await databaseService.getProductWithDetails(productName);
       setSelectedProductDetails(productDetails);
       updateState({ loading: false });
@@ -160,7 +162,7 @@ function App() {
   const loadProductsForMeasurePoint = useCallback(async (measurePointId: string) => {
     try {
       if (!databaseConnected) return;
-      
+
       const products = await databaseService.getProductsForMeasurePoint(parseInt(measurePointId));
       updateState({ products });
     } catch (err) {
@@ -200,9 +202,9 @@ function App() {
   }, []);
 
   const handleMeasurePointSelect = useCallback((measurePointId: string) => {
-    updateState({ 
+    updateState({
       selectedMeasurePoint: measurePointId,
-      selectedProduct: null 
+      selectedProduct: null
     });
     setSelectedProductDetails(null);
     loadProductsForMeasurePoint(measurePointId);
@@ -263,7 +265,7 @@ function App() {
   }, []);
 
   // Get selected measure point data
-  const selectedMeasurePointData = state.selectedMeasurePoint 
+  const selectedMeasurePointData = state.selectedMeasurePoint
     ? state.measurePoints.find(mp => mp.Id.toString() === state.selectedMeasurePoint) || null
     : null;
 
@@ -285,7 +287,7 @@ function App() {
       <div className="h-screen flex flex-col bg-gray-50">
         {/* Header */}
         {currentView !== 'admin' && (
-          <Header 
+          <Header
             onShowProductCatalog={handleShowProductCatalog}
             onShowAdmin={handleShowAdmin}
           />
@@ -294,7 +296,7 @@ function App() {
         {/* Database Connection Status */}
         {!databaseConnected && currentView !== 'admin' && (
           <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-yellow-800 text-sm">
-            ⚠️ Datenbank nicht verbunden - verwende Fallback-Daten. 
+            ⚠️ Datenbank nicht verbunden - verwende Fallback-Daten.
             Starten Sie den API-Server mit: <code className="bg-yellow-200 px-1 rounded">npm run db:server</code>
           </div>
         )}
@@ -313,8 +315,8 @@ function App() {
               {adminSection === 'scenes' && <SceneManagement />}
               {adminSection === 'measurepoints' && <MeasurePointManagement />}
               {adminSection === 'categories' && <CategoryManagement />}
-              {adminSection === 'parameters' && <div className="p-6">Parameter-Verwaltung (Coming Soon)</div>}
-              {adminSection === 'objects3d' && <div className="p-6">3D-Objekt-Verwaltung (Coming Soon)</div>}
+              {adminSection === 'parameters' && <ParameterManagement />}
+              {adminSection === 'objects3d' && <Object3DManagement />}
               {adminSection === 'uploads' && <UploadManagement />}
             </AdminLayout>
           )}
@@ -326,7 +328,7 @@ function App() {
 
           {currentView === 'productCatalog' && (
             /* Product Catalog View */
-            <ProductCatalog 
+            <ProductCatalog
               onBackToLineSelection={handleBackToLineSelection}
               onProductSelect={handleProductCatalogSelect}
             />
@@ -334,7 +336,7 @@ function App() {
 
           {currentView === 'productDetail' && (
             /* Product Detail View */
-            <ProductDetail 
+            <ProductDetail
               productName={selectedProductName}
               onBack={handleBackFromProductDetail}
             />
@@ -411,4 +413,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;

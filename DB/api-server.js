@@ -2,9 +2,26 @@ const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 
 const app = express();
-const PORT = 3001;
+const PORT = 3001; // Backend bleibt auf 3001
+
+// Configure multer for file uploads
+const upload = multer({
+  dest: path.join(__dirname, '..', 'assets', 'models', 'uploads'),
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.originalname.toLowerCase().endsWith('.glb')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only GLB files are allowed'), false);
+    }
+  }
+});
 
 // Middleware
 app.use(cors());
@@ -65,6 +82,84 @@ app.get('/api/scenes/:id', async (req, res) => {
 });
 
 // === MESSPUNKTE ===
+// Admin: Alle Messpunkte abrufen
+app.get('/api/measurepoints', async (req, res) => {
+  try {
+    const measurePoints = await queryDb(`
+      SELECT mp.*, s.Name_EN as Scene_Name_EN, s.Name_DE as Scene_Name_DE
+      FROM MeasurePoint mp
+      LEFT JOIN Scene s ON mp.Scene_Id = s.Id
+      ORDER BY mp.Id
+    `);
+    sendResponse(res, measurePoints);
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Messpunkt erstellen
+app.post('/api/measurepoints', async (req, res) => {
+  try {
+    const { Name_EN, Name_DE, SpacePosX, SpacePosY, SpacePosZ, Scene_Id } = req.body;
+
+    const result = await new Promise((resolve, reject) => {
+      db.run(`
+        INSERT INTO MeasurePoint (Name_EN, Name_DE, SpacePosX, SpacePosY, SpacePosZ, Scene_Id)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [Name_EN, Name_DE, SpacePosX || 0, SpacePosY || 0, SpacePosZ || 0, Scene_Id], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID });
+      });
+    });
+
+    sendResponse(res, { id: result.id, message: 'Messpunkt erfolgreich erstellt' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Messpunkt aktualisieren
+app.put('/api/measurepoints/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { Name_EN, Name_DE, SpacePosX, SpacePosY, SpacePosZ, Scene_Id } = req.body;
+
+    await new Promise((resolve, reject) => {
+      db.run(`
+        UPDATE MeasurePoint
+        SET Name_EN = ?, Name_DE = ?, SpacePosX = ?, SpacePosY = ?, SpacePosZ = ?, Scene_Id = ?
+        WHERE Id = ?
+      `, [Name_EN, Name_DE, SpacePosX, SpacePosY, SpacePosZ, Scene_Id, id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, { message: 'Messpunkt erfolgreich aktualisiert' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Messpunkt löschen
+app.delete('/api/measurepoints/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM MeasurePoint WHERE Id = ?', [id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, { message: 'Messpunkt erfolgreich gelöscht' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Messpunkte für eine Szene
 app.get('/api/scenes/:sceneId/measurepoints', async (req, res) => {
   try {
     const { sceneId } = req.params;
@@ -116,8 +211,8 @@ app.get('/api/products/:name/specifications', async (req, res) => {
   try {
     const { name } = req.params;
     const specifications = await queryDb(`
-      SELECT * FROM ProductSpecification 
-      WHERE Product_Name = ? 
+      SELECT * FROM ProductSpecification
+      WHERE Product_Name = ?
       ORDER BY SortOrder, Id
     `, [decodeURIComponent(name)]);
     sendResponse(res, specifications);
@@ -131,8 +226,8 @@ app.get('/api/products/:name/features', async (req, res) => {
   try {
     const { name } = req.params;
     const features = await queryDb(`
-      SELECT * FROM ProductFeature 
-      WHERE Product_Name = ? 
+      SELECT * FROM ProductFeature
+      WHERE Product_Name = ?
       ORDER BY SortOrder, Id
     `, [decodeURIComponent(name)]);
     sendResponse(res, features);
@@ -146,8 +241,8 @@ app.get('/api/products/:name/advantages', async (req, res) => {
   try {
     const { name } = req.params;
     const advantages = await queryDb(`
-      SELECT * FROM ProductAdvantage 
-      WHERE Product_Name = ? 
+      SELECT * FROM ProductAdvantage
+      WHERE Product_Name = ?
       ORDER BY SortOrder, Id
     `, [decodeURIComponent(name)]);
     sendResponse(res, advantages);
@@ -161,8 +256,8 @@ app.get('/api/products/:name/installation', async (req, res) => {
   try {
     const { name } = req.params;
     const installation = await queryDb(`
-      SELECT * FROM ProductInstallation 
-      WHERE Product_Name = ? 
+      SELECT * FROM ProductInstallation
+      WHERE Product_Name = ?
       LIMIT 1
     `, [decodeURIComponent(name)]);
     sendResponse(res, installation.length > 0 ? installation[0] : null);
@@ -176,8 +271,8 @@ app.get('/api/products/:name/datasheet', async (req, res) => {
   try {
     const { name } = req.params;
     const datasheet = await queryDb(`
-      SELECT * FROM ProductDatasheet 
-      WHERE Product_Name = ? 
+      SELECT * FROM ProductDatasheet
+      WHERE Product_Name = ?
       LIMIT 1
     `, [decodeURIComponent(name)]);
     sendResponse(res, datasheet.length > 0 ? datasheet[0] : null);
@@ -212,10 +307,89 @@ app.get('/api/categories/:id/products', async (req, res) => {
 });
 
 // === MESSPARAMETER ===
+// Admin: Alle Messparameter abrufen
 app.get('/api/measureparameters', async (req, res) => {
   try {
     const parameters = await queryDb('SELECT * FROM MeasureParameter ORDER BY Id');
     sendResponse(res, parameters);
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Messparameter erstellen
+app.post('/api/measureparameters', async (req, res) => {
+  try {
+    const { Name_EN, Name_DE } = req.body;
+
+    const result = await new Promise((resolve, reject) => {
+      db.run(`
+        INSERT INTO MeasureParameter (Name_EN, Name_DE)
+        VALUES (?, ?)
+      `, [Name_EN, Name_DE], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID });
+      });
+    });
+
+    sendResponse(res, { id: result.id, message: 'Messparameter erfolgreich erstellt' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Messparameter aktualisieren
+app.put('/api/measureparameters/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { Name_EN, Name_DE } = req.body;
+
+    await new Promise((resolve, reject) => {
+      db.run(`
+        UPDATE MeasureParameter
+        SET Name_EN = ?, Name_DE = ?
+        WHERE Id = ?
+      `, [Name_EN, Name_DE, id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, { message: 'Messparameter erfolgreich aktualisiert' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Messparameter löschen
+app.delete('/api/measureparameters/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Zuerst Verknüpfungen löschen
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Join_MeasurePoint_MeasureParameter WHERE MeasureParameter_Id = ?', [id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Join_Product_MeasureParameter WHERE MeasureParameter_Id = ?', [id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Dann Parameter löschen
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM MeasureParameter WHERE Id = ?', [id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, { message: 'Messparameter erfolgreich gelöscht' });
   } catch (error) {
     sendResponse(res, null, error);
   }
@@ -256,7 +430,7 @@ app.get('/api/measureparameters/:id/products', async (req, res) => {
 app.get('/api/measurepoints/:id/products', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     // Erst prüfen ob Messpunkt existiert
     const measurePointExists = await queryDb('SELECT Id, Scene_Id FROM MeasurePoint WHERE Id = ?', [id]);
     if (measurePointExists.length === 0) {
@@ -277,7 +451,7 @@ app.get('/api/measurepoints/:id/products', async (req, res) => {
       )
       ORDER BY p.Name
     `, [id, id]);
-    
+
     // Wenn keine spezifischen Produkte gefunden, lade Produkte für die Szene
     if (products.length === 0) {
       products = await queryDb(`
@@ -291,11 +465,11 @@ app.get('/api/measurepoints/:id/products', async (req, res) => {
         ORDER BY p.Name
       `, [measurePoint.Scene_Id, id]);
     }
-    
+
     // Wenn immer noch keine Produkte, zeige eine größere Auswahl aller Produkte
     if (products.length === 0) {
       products = await queryDb(`
-        SELECT * FROM Product 
+        SELECT * FROM Product
         WHERE Name NOT IN (
           SELECT COALESCE(amp.Product_Name, '') FROM AntiJoin_MeasurePoint_Product amp
           WHERE amp.MeasurePoint_Id = ?
@@ -304,7 +478,7 @@ app.get('/api/measurepoints/:id/products', async (req, res) => {
         LIMIT 50
       `, [id]);
     }
-    
+
     sendResponse(res, products);
   } catch (error) {
     sendResponse(res, null, error);
@@ -315,23 +489,23 @@ app.get('/api/measurepoints/:id/products', async (req, res) => {
 app.get('/api/scenes/:id/complete', async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const [scenes, measurePoints] = await Promise.all([
       queryDb('SELECT * FROM Scene WHERE Id = ?', [id]),
       queryDb('SELECT * FROM MeasurePoint WHERE Scene_Id = ? ORDER BY Id', [id])
     ]);
-    
+
     const scene = scenes.length > 0 ? scenes[0] : null;
     if (!scene) {
       return sendResponse(res, null, new Error('Scene not found'));
     }
-    
+
     // Prüfe ob die Tabelle Map_Scene_Object3D_Static_Placement existiert und Spalten hat
     let staticObjects = [];
     try {
       // Korrekte Spaltennamen verwenden: XPosition, YPosition, ZPosition, etc.
       staticObjects = await queryDb(`
-        SELECT 
+        SELECT
           Object3D_Url as url,
           XPosition, YPosition, ZPosition,
           XRotation, YRotation, ZRotation,
@@ -339,7 +513,7 @@ app.get('/api/scenes/:id/complete', async (req, res) => {
         FROM Map_Scene_Object3D_Static_Placement
         WHERE Scene_Id = ?
       `, [id]);
-      
+
     } catch (err) {
       console.warn('Static objects table query failed:', err.message);
       // Fallback: Standard 3D-Objekt für die Szene
@@ -354,7 +528,7 @@ app.get('/api/scenes/:id/complete', async (req, res) => {
         Scale: 1
       }];
     }
-    
+
     const sceneData = {
       scene,
       measurePoints,
@@ -366,7 +540,7 @@ app.get('/api/scenes/:id/complete', async (req, res) => {
         scale: [obj.Scale || 1, obj.Scale || 1, obj.Scale || 1],
       }))
     };
-    
+
     sendResponse(res, sceneData);
   } catch (error) {
     sendResponse(res, null, error);
@@ -383,7 +557,7 @@ app.get('/api/placeholder/:width/:height', (req, res) => {
   const { width, height } = req.params;
   const w = parseInt(width) || 300;
   const h = parseInt(height) || 200;
-  
+
   // Generate a simple SVG placeholder
   const svg = `
     <svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">
@@ -397,7 +571,7 @@ app.get('/api/placeholder/:width/:height', (req, res) => {
       </text>
     </svg>
   `;
-  
+
   res.setHeader('Content-Type', 'image/svg+xml');
   res.setHeader('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
   res.send(svg);
@@ -424,7 +598,7 @@ app.use('/api/assets', express.static(path.join(__dirname, '..', 'assets'), {
 // Fallback for missing assets - serve placeholder
 app.get('/api/assets/*', (req, res) => {
   const requestedPath = req.params[0];
-  
+
   if (requestedPath.includes('images/') && (requestedPath.endsWith('.jpg') || requestedPath.endsWith('.jpeg') || requestedPath.endsWith('.png'))) {
     // Redirect to placeholder for missing images
     res.redirect(`/api/placeholder/300/200`);
@@ -485,4 +659,4 @@ app.listen(PORT, () => {
   console.log(`SIKORA API Server running on http://localhost:${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/api/health`);
   console.log(`Debug tables: http://localhost:${PORT}/api/debug/tables`);
-}); 
+});
