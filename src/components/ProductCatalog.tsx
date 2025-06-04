@@ -1,20 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, ArrowLeft, ExternalLink, Plus, Target, Grid, List } from 'lucide-react';
+import { Search, Filter, ArrowLeft, ExternalLink, Grid, List } from 'lucide-react';
 import { databaseService, formatSikoraProductName } from '../services/database';
 import type { Product, ProductCategory } from '../types';
 
 interface ProductCatalogProps {
   onBackToLineSelection: () => void;
   onProductSelect?: (productName: string) => void;
-  onLoadToMeasurePoint?: (productName: string, measurePointId?: string) => void;
-  availableMeasurePoints?: Array<{ id: string; name: string }>;
 }
 
 const ProductCatalog: React.FC<ProductCatalogProps> = ({ 
   onBackToLineSelection, 
-  onProductSelect,
-  onLoadToMeasurePoint,
-  availableMeasurePoints = []
+  onProductSelect
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
@@ -25,7 +21,6 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showLoadToMeasurePoint, setShowLoadToMeasurePoint] = useState<string | null>(null);
 
   // Technology categories for better filtering
   const technologies = [
@@ -358,52 +353,14 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                             SIKORA Messtechnik
                           </div>
                           
-                          {/* Action Buttons */}
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => onProductSelect?.(product.Name)}
-                              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-sikora-blue bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
-                            >
-                              <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-                              Details
-                            </button>
-                            
-                            {/* Load to Measure Point Button */}
-                            {onLoadToMeasurePoint && (
-                              <div className="relative">
-                                <button
-                                  onClick={() => setShowLoadToMeasurePoint(
-                                    showLoadToMeasurePoint === product.Name ? null : product.Name
-                                  )}
-                                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors"
-                                >
-                                  <Target className="w-3 h-3 sm:w-4 sm:h-4" />
-                                  Laden
-                                </button>
-                                
-                                {/* Measure Point Dropdown */}
-                                {showLoadToMeasurePoint === product.Name && availableMeasurePoints.length > 0 && (
-                                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg min-w-48 z-50">
-                                    <div className="p-2 border-b border-gray-100">
-                                      <p className="text-xs font-medium text-gray-700">Auf Messpunkt laden:</p>
-                                    </div>
-                                    {availableMeasurePoints.map((mp) => (
-                                      <button
-                                        key={mp.id}
-                                        onClick={() => {
-                                          onLoadToMeasurePoint(product.Name, mp.id);
-                                          setShowLoadToMeasurePoint(null);
-                                        }}
-                                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
-                                      >
-                                        {mp.name}
-                                      </button>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
+                          {/* Single Details Button */}
+                          <button
+                            onClick={() => onProductSelect?.(product.Name)}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors"
+                          >
+                            <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
+                            Details ansehen
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -414,14 +371,6 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           )}
         </div>
       </div>
-
-      {/* Click outside to close dropdown */}
-      {showLoadToMeasurePoint && (
-        <div 
-          className="fixed inset-0 z-40"
-          onClick={() => setShowLoadToMeasurePoint(null)}
-        />
-      )}
     </div>
   );
 };

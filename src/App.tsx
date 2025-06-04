@@ -361,8 +361,6 @@ function App() {
             <ProductCatalog
               onBackToLineSelection={handleBackToLineSelection}
               onProductSelect={handleProductCatalogSelect}
-              onLoadToMeasurePoint={handleLoadToMeasurePoint}
-              availableMeasurePoints={availableMeasurePoints}
             />
           )}
 
@@ -371,6 +369,8 @@ function App() {
             <ProductDetail
               productName={selectedProductName}
               onBack={handleBackFromProductDetail}
+              onLoadToMeasurePoint={handleLoadToMeasurePoint}
+              availableMeasurePoints={availableMeasurePoints}
             />
           )}
 
