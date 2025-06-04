@@ -201,6 +201,30 @@ function App() {
     setCurrentView('productDetail');
   }, []);
 
+  const handleLoadToMeasurePoint = useCallback((productName: string, measurePointId?: string) => {
+    // If measurePointId is provided, use it, otherwise use current selected measure point
+    const targetMeasurePoint = measurePointId || state.selectedMeasurePoint;
+    
+    if (targetMeasurePoint) {
+      setState(prev => ({
+        ...prev,
+        configuration: {
+          ...prev.configuration,
+          [targetMeasurePoint]: productName
+        },
+        selectedProduct: productName
+      }));
+      
+      // Load product details
+      loadProductDetails(productName);
+      
+      // Switch back to configuration view if we're in the catalog
+      if (currentView === 'productCatalog') {
+        setCurrentView('configuration');
+      }
+    }
+  }, [state.selectedMeasurePoint, loadProductDetails, currentView]);
+
   const handleMeasurePointSelect = useCallback((measurePointId: string) => {
     updateState({
       selectedMeasurePoint: measurePointId,
@@ -278,6 +302,12 @@ function App() {
     return acc;
   }, {} as Record<string, { Object3D_Url: string; Name: string }>);
 
+  // Build available measure points for ProductCatalog
+  const availableMeasurePoints = state.measurePoints.map(mp => ({
+    id: mp.Id.toString(),
+    name: mp.Name_DE || mp.Name_EN || `Messpunkt ${mp.Id}`
+  }));
+
   // Debug: Log current view
   console.log('Current view:', currentView, 'Admin section:', adminSection);
 
@@ -331,6 +361,8 @@ function App() {
             <ProductCatalog
               onBackToLineSelection={handleBackToLineSelection}
               onProductSelect={handleProductCatalogSelect}
+              onLoadToMeasurePoint={handleLoadToMeasurePoint}
+              availableMeasurePoints={availableMeasurePoints}
             />
           )}
 
@@ -343,24 +375,26 @@ function App() {
           )}
 
           {currentView === 'configuration' && (
-            /* Configuration View */
-            <>
-              {/* Left Sidebar */}
-              <ConfigurationSidebar
-                scene={state.selectedScene}
-                lineType={state.selectedLineType}
-                measurePoints={state.measurePoints}
-                products={state.products}
-                configuration={state.configuration}
-                selectedMeasurePoint={state.selectedMeasurePoint}
-                onBackToLineSelection={handleBackToLineSelection}
-                onMeasurePointSelect={handleMeasurePointSelect}
-                onProductSelect={handleProductSelect}
-                onConfigureProduct={handleConfigureProduct}
-              />
+            /* Configuration View - Responsive Layout */
+            <div className="flex w-full h-full">
+              {/* Left Sidebar - Responsive */}
+              <div className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0">
+                <ConfigurationSidebar
+                  scene={state.selectedScene}
+                  lineType={state.selectedLineType}
+                  measurePoints={state.measurePoints}
+                  products={state.products}
+                  configuration={state.configuration}
+                  selectedMeasurePoint={state.selectedMeasurePoint}
+                  onBackToLineSelection={handleBackToLineSelection}
+                  onMeasurePointSelect={handleMeasurePointSelect}
+                  onProductSelect={handleProductSelect}
+                  onConfigureProduct={handleConfigureProduct}
+                />
+              </div>
 
-              {/* 3D Scene */}
-              <div className="flex-1 p-4">
+              {/* 3D Scene - Responsive Padding */}
+              <div className="flex-1 p-2 sm:p-4 lg:p-6">
                 <Scene3D
                   sceneData={sceneData || undefined}
                   configuration={state.configuration}
@@ -370,19 +404,68 @@ function App() {
                 />
               </div>
 
-              {/* Right Panel */}
-              <DetailsPanel
-                selectedProduct={selectedProductDetails}
-                selectedMeasurePoint={selectedMeasurePointData}
-                availableProducts={state.products}
-                configuration={state.configuration}
-                onShowMeasurePoints={handleShowMeasurePoints}
-                onShowProducts={handleShowProducts}
-                onProductSelect={handleProductSelect}
-                onConfigureProduct={handleConfigureProduct}
-                loading={state.loading}
-              />
-            </>
+              {/* Right Panel - Responsive */}
+              <div className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
+                <DetailsPanel
+                  selectedProduct={selectedProductDetails}
+                  selectedMeasurePoint={selectedMeasurePointData}
+                  availableProducts={state.products}
+                  configuration={state.configuration}
+                  onShowMeasurePoints={handleShowMeasurePoints}
+                  onShowProducts={handleShowProducts}
+                  onProductSelect={handleProductSelect}
+                  onConfigureProduct={handleConfigureProduct}
+                  loading={state.loading}
+                />
+              </div>
+
+              {/* Mobile/Tablet Bottom Panel */}
+              <div className="lg:hidden xl:hidden fixed bottom-0 left-0 right-0 z-30">
+                <div className="bg-white border-t border-gray-200 shadow-lg max-h-60 overflow-y-auto">
+                  <div className="p-3 sm:p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-medium text-gray-900">
+                        {state.selectedMeasurePoint 
+                          ? `Messpunkt: ${selectedMeasurePointData?.Name_DE || selectedMeasurePointData?.Name_EN || state.selectedMeasurePoint}`
+                          : 'Kein Messpunkt ausgewählt'
+                        }
+                      </h3>
+                      <button
+                        onClick={handleShowProductCatalog}
+                        className="text-xs px-2 py-1 bg-sikora-blue text-white rounded hover:bg-sikora-cyan"
+                      >
+                        Katalog
+                      </button>
+                    </div>
+                    
+                    {state.selectedMeasurePoint && state.products.length > 0 && (
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-600">Verfügbare Produkte:</p>
+                        <div className="flex flex-wrap gap-1">
+                          {state.products.slice(0, 4).map((product) => (
+                            <button
+                              key={product.Name}
+                              onClick={() => handleProductSelect(product.Name)}
+                              className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 truncate max-w-24"
+                            >
+                              {product.Name.split(' ')[0]}
+                            </button>
+                          ))}
+                          {state.products.length > 4 && (
+                            <button
+                              onClick={handleShowProductCatalog}
+                              className="text-xs px-2 py-1 bg-sikora-blue text-white rounded hover:bg-sikora-cyan"
+                            >
+                              +{state.products.length - 4}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
         </div>
 

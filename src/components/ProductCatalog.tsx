@@ -1,24 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, ArrowLeft, ExternalLink } from 'lucide-react';
+import { Search, Filter, ArrowLeft, ExternalLink, Plus, Target, Grid, List } from 'lucide-react';
 import { databaseService, formatSikoraProductName } from '../services/database';
 import type { Product, ProductCategory } from '../types';
 
 interface ProductCatalogProps {
   onBackToLineSelection: () => void;
   onProductSelect?: (productName: string) => void;
+  onLoadToMeasurePoint?: (productName: string, measurePointId?: string) => void;
+  availableMeasurePoints?: Array<{ id: string; name: string }>;
 }
 
 const ProductCatalog: React.FC<ProductCatalogProps> = ({ 
   onBackToLineSelection, 
-  onProductSelect 
+  onProductSelect,
+  onLoadToMeasurePoint,
+  availableMeasurePoints = []
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [selectedTechnology, setSelectedTechnology] = useState<string>('');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showLoadToMeasurePoint, setShowLoadToMeasurePoint] = useState<string | null>(null);
+
+  // Technology categories for better filtering
+  const technologies = [
+    { id: 'X-RAY', name: 'X-RAY Systeme', color: 'bg-red-100 text-red-800' },
+    { id: 'LASER', name: 'LASER Systeme', color: 'bg-blue-100 text-blue-800' },
+    { id: 'CENTERVIEW', name: 'CENTERVIEW', color: 'bg-green-100 text-green-800' },
+    { id: 'SPARK', name: 'SPARK Tester', color: 'bg-yellow-100 text-yellow-800' },
+    { id: 'FIBER', name: 'FIBER Systeme', color: 'bg-purple-100 text-purple-800' },
+    { id: 'CENTERWAVE', name: 'CENTERWAVE', color: 'bg-indigo-100 text-indigo-800' },
+    { id: 'PREHEATER', name: 'PREHEATER', color: 'bg-orange-100 text-orange-800' },
+    { id: 'ECOCONTROL', name: 'ECOCONTROL', color: 'bg-teal-100 text-teal-800' },
+  ];
 
   // Load data on component mount
   useEffect(() => {
@@ -44,7 +63,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     loadData();
   }, []);
 
-  // Filter products based on search and category
+  // Filter products based on search, category and technology
   useEffect(() => {
     let filtered = products;
 
@@ -57,10 +76,15 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       );
     }
 
+    // Filter by technology
+    if (selectedTechnology) {
+      filtered = filtered.filter(product => 
+        product.Name.includes(selectedTechnology)
+      );
+    }
+
     // Filter by category
     if (selectedCategory !== null) {
-      // Note: This would need the Join_Product_Category data to work properly
-      // For now, we'll filter by product name patterns
       const categoryFilters: Record<number, (name: string) => boolean> = {
         1: (name) => name.includes('X-RAY'),
         2: (name) => name.includes('LASER'),
@@ -79,7 +103,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     }
 
     setFilteredProducts(filtered);
-  }, [products, searchTerm, selectedCategory]);
+  }, [products, searchTerm, selectedCategory, selectedTechnology]);
 
   // Group products by technology series
   const groupedProducts = filteredProducts.reduce((groups, product) => {
@@ -93,20 +117,32 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
   const getImageUrl = (product: Product) => {
     if (product.ImageUrl && !product.ImageUrl.startsWith('http')) {
-      // Remove 'public/' prefix and 'assets/' if it exists, since our asset server serves from 'assets/'
       let cleanPath = product.ImageUrl.replace(/^public\//, '').replace(/^assets\//, '');
-      
-      // Fix folder name mappings between database and actual folder structure
       cleanPath = cleanPath.replace(/x-ray_6000_pro/g, 'x_ray_6000');
       cleanPath = cleanPath.replace(/x-ray_8000/g, 'x_ray_8000');
       cleanPath = cleanPath.replace(/\/spark\//g, '/spark_2000_6000/');
       cleanPath = cleanPath.replace(/\/remote\//g, '/remote_6000/');
       
       const finalUrl = `/api/assets/${cleanPath}`;
-      console.log(`Image mapping: ${product.ImageUrl} -> ${finalUrl}`);
       return finalUrl;
     }
     return product.ImageUrl || `/api/placeholder/300/200`;
+  };
+
+  const getTechnologyFromProductName = (productName: string): string => {
+    const tech = technologies.find(t => productName.includes(t.id));
+    return tech?.id || '';
+  };
+
+  const getTechnologyColor = (productName: string): string => {
+    const tech = technologies.find(t => productName.includes(t.id));
+    return tech?.color || 'bg-gray-100 text-gray-800';
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setSelectedCategory(null);
+    setSelectedTechnology('');
   };
 
   if (loading) {
@@ -139,131 +175,235 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 flex-shrink-0 z-10">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+      <div className="bg-white border-b border-gray-200 flex-shrink-0 z-10 shadow-sm">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center space-x-3 sm:space-x-4">
               <button
                 onClick={onBackToLineSelection}
                 className="flex items-center text-sikora-blue hover:text-sikora-cyan transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 mr-2" />
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 Zurück
               </button>
-              <h1 className="text-2xl font-bold text-sikora-blue">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue">
                 SIKORA Produktkatalog
               </h1>
             </div>
-            <div className="text-sm text-gray-600">
-              {filteredProducts.length} von {products.length} Produkten
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="text-xs sm:text-sm text-gray-600 bg-gray-100 px-2 sm:px-3 py-1 rounded-full">
+                {filteredProducts.length} von {products.length} Produkten
+              </div>
+              {/* View Mode Toggle */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-1.5 sm:p-2 rounded-md transition-colors ${
+                    viewMode === 'grid' ? 'bg-white text-sikora-blue shadow-sm' : 'text-gray-600'
+                  }`}
+                >
+                  <Grid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-1.5 sm:p-2 rounded-md transition-colors ${
+                    viewMode === 'list' ? 'bg-white text-sikora-blue shadow-sm' : 'text-gray-600'
+                  }`}
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Search and Filter Bar */}
+      {/* Enhanced Search and Filter Bar */}
       <div className="bg-white border-b border-gray-200 flex-shrink-0">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
+          <div className="space-y-3 sm:space-y-4">
             {/* Search */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
               <input
                 type="text"
                 placeholder="Produkte durchsuchen..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sikora-blue focus:border-transparent"
+                className="w-full pl-9 sm:pl-10 pr-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sikora-blue focus:border-transparent text-sm sm:text-base"
               />
             </div>
 
-            {/* Category Filter */}
-            <div className="flex items-center space-x-2">
-              <Filter className="text-gray-400 w-5 h-5" />
-              <select
-                value={selectedCategory || ''}
-                onChange={(e) => setSelectedCategory(e.target.value ? parseInt(e.target.value) : null)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sikora-blue focus:border-transparent"
+            {/* Technology Filter Pills */}
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={clearAllFilters}
+                className="px-3 py-1.5 text-xs sm:text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
               >
-                <option value="">Alle Kategorien</option>
-                <option value="1">X-RAY Systeme</option>
-                <option value="2">LASER Systeme</option>
-                <option value="3">CENTERVIEW Systeme</option>
-                <option value="4">SPARK Tester</option>
-                <option value="5">FIBER Systeme</option>
-                <option value="6">CENTERWAVE Systeme</option>
-                <option value="7">PREHEATER Systeme</option>
-                <option value="8">ECOCONTROL Systeme</option>
-              </select>
+                Alle anzeigen
+              </button>
+              {technologies.map((tech) => (
+                <button
+                  key={tech.id}
+                  onClick={() => setSelectedTechnology(selectedTechnology === tech.id ? '' : tech.id)}
+                  className={`px-3 py-1.5 text-xs sm:text-sm rounded-full transition-colors ${
+                    selectedTechnology === tech.id
+                      ? tech.color + ' ring-2 ring-offset-1 ring-sikora-blue'
+                      : tech.color + ' hover:ring-1 hover:ring-sikora-blue'
+                  }`}
+                >
+                  {tech.name}
+                </button>
+              ))}
             </div>
+
+            {/* Active Filters */}
+            {(searchTerm || selectedCategory || selectedTechnology) && (
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
+                <Filter className="w-4 h-4" />
+                <span>Aktive Filter:</span>
+                {searchTerm && (
+                  <span className="bg-sikora-blue text-white px-2 py-1 rounded">
+                    "{searchTerm}"
+                  </span>
+                )}
+                {selectedTechnology && (
+                  <span className="bg-sikora-blue text-white px-2 py-1 rounded">
+                    {technologies.find(t => t.id === selectedTechnology)?.name}
+                  </span>
+                )}
+                <button
+                  onClick={clearAllFilters}
+                  className="text-sikora-blue hover:text-sikora-cyan underline"
+                >
+                  Alle löschen
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Products Grid - Scrollable Content */}
+      {/* Products Grid/List - Scrollable Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {Object.keys(groupedProducts).length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">Keine Produkte gefunden.</p>
               <p className="text-gray-400 mt-2">Versuchen Sie andere Suchbegriffe oder Filter.</p>
+              <button
+                onClick={clearAllFilters}
+                className="mt-4 px-4 py-2 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan"
+              >
+                Filter zurücksetzen
+              </button>
             </div>
           ) : (
             Object.entries(groupedProducts).map(([series, seriesProducts]) => (
-              <div key={series} className="mb-12">
-                <h2 className="text-2xl font-bold text-sikora-blue mb-6 border-b border-gray-200 pb-2">
+              <div key={series} className="mb-8 sm:mb-12">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue mb-4 sm:mb-6 border-b border-gray-200 pb-2">
                   {formatSikoraProductName(series)} Serie
+                  <span className="ml-3 text-sm sm:text-base font-normal text-gray-500">
+                    ({seriesProducts.length} Produkte)
+                  </span>
                 </h2>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className={
+                  viewMode === 'grid'
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"
+                    : "space-y-4"
+                }>
                   {seriesProducts.map((product) => (
                     <div
                       key={product.Name}
-                      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group"
-                      onClick={() => onProductSelect?.(product.Name)}
+                      className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 group ${
+                        viewMode === 'list' ? 'flex' : ''
+                      }`}
                     >
                       {/* Product Image */}
-                      <div className="relative h-48 bg-gray-100">
+                      <div className={`relative bg-gray-100 ${
+                        viewMode === 'list' ? 'w-32 sm:w-48 flex-shrink-0' : 'h-40 sm:h-48'
+                      }`}>
                         <img
                           src={getImageUrl(product)}
                           alt={product.Name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
                             const target = e.target as HTMLImageElement;
-                            const originalSrc = target.src;
-                            console.log(`Failed to load image: ${originalSrc} for product: ${product.Name}`);
                             target.src = `/api/placeholder/300/200`;
-                          }}
-                          onLoad={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            console.log(`Successfully loaded image: ${target.src} for product: ${product.Name}`);
                           }}
                         />
                         <div className="absolute top-2 right-2">
-                          <span className="bg-sikora-blue text-white px-2 py-1 rounded text-xs font-medium">
-                            {series}
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${getTechnologyColor(product.Name)}`}>
+                            {getTechnologyFromProductName(product.Name) || series}
                           </span>
                         </div>
                       </div>
 
                       {/* Product Info */}
-                      <div className="p-4">
-                        <h3 className="font-bold text-lg text-sikora-blue mb-2 sikora-product-name">
+                      <div className={`p-3 sm:p-4 ${viewMode === 'list' ? 'flex-1 flex flex-col' : ''}`}>
+                        <h3 className="font-bold text-sm sm:text-lg text-sikora-blue mb-2 sikora-product-name">
                           {formatSikoraProductName(product.Name)}
                         </h3>
                         
                         <div 
-                          className="text-sm text-gray-600 line-clamp-3 mb-4"
+                          className="text-xs sm:text-sm text-gray-600 line-clamp-3 mb-3 sm:mb-4 flex-1"
                           dangerouslySetInnerHTML={{ 
                             __html: product.HTMLDescription_DE || product.HTMLDescription_EN || ''
                           }}
                         />
 
-                        <div className="flex items-center justify-between">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                           <div className="text-xs text-gray-500">
                             SIKORA Messtechnik
                           </div>
-                          <ExternalLink className="w-4 h-4 text-sikora-blue group-hover:text-sikora-cyan" />
+                          
+                          {/* Action Buttons */}
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => onProductSelect?.(product.Name)}
+                              className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-sikora-blue bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
+                              Details
+                            </button>
+                            
+                            {/* Load to Measure Point Button */}
+                            {onLoadToMeasurePoint && (
+                              <div className="relative">
+                                <button
+                                  onClick={() => setShowLoadToMeasurePoint(
+                                    showLoadToMeasurePoint === product.Name ? null : product.Name
+                                  )}
+                                  className="flex items-center gap-1 px-2 sm:px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors"
+                                >
+                                  <Target className="w-3 h-3 sm:w-4 sm:h-4" />
+                                  Laden
+                                </button>
+                                
+                                {/* Measure Point Dropdown */}
+                                {showLoadToMeasurePoint === product.Name && availableMeasurePoints.length > 0 && (
+                                  <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg min-w-48 z-50">
+                                    <div className="p-2 border-b border-gray-100">
+                                      <p className="text-xs font-medium text-gray-700">Auf Messpunkt laden:</p>
+                                    </div>
+                                    {availableMeasurePoints.map((mp) => (
+                                      <button
+                                        key={mp.id}
+                                        onClick={() => {
+                                          onLoadToMeasurePoint(product.Name, mp.id);
+                                          setShowLoadToMeasurePoint(null);
+                                        }}
+                                        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
+                                      >
+                                        {mp.name}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -274,6 +414,14 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           )}
         </div>
       </div>
+
+      {/* Click outside to close dropdown */}
+      {showLoadToMeasurePoint && (
+        <div 
+          className="fixed inset-0 z-40"
+          onClick={() => setShowLoadToMeasurePoint(null)}
+        />
+      )}
     </div>
   );
 };
