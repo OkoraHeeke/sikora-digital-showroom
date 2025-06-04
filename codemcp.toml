@@ -1,0 +1,89 @@
+[server]
+name = "sikora-digital-showroom"
+description = "SIKORA Digital Showroom - TypeScript/React Linienkonfigurator"
+
+[paths]
+# Include wichtige Projektdateien
+include = [
+    "src/**/*",
+    "DB/**/*",
+    "assets/**/*",
+    "*.ts",
+    "*.tsx", 
+    "*.js",
+    "*.json",
+    "*.md",
+    "*.html",
+    "*.css",
+    "*.toml"
+]
+
+# Exclude unnötige Dateien
+exclude = [
+    "node_modules/**/*",
+    "dist/**/*",
+    "build/**/*",
+    ".git/**/*",
+    ".vite/**/*",
+    "*.log",
+    "*.sqlite",
+    "package-lock.json"
+]
+
+[commands]
+# Code-Formatierung
+format = "npm run lint"
+
+# Build-Test (prüft TypeScript Kompilation)
+test = "npm run build"
+
+# Development Server starten
+dev = "npm run dev"
+
+# Database initialisieren
+db_init = "npm run db:init"
+
+# Database Server starten
+db_server = "npm run db:server"
+
+[integrations.claude]
+# Spezifische Instruktionen für Claude
+instructions = """
+Du arbeitest mit einem TypeScript/React Projekt für den SIKORA Digital Showroom.
+
+**Projektstruktur:**
+- Frontend: React + TypeScript + Vite
+- Styling: Tailwind CSS
+- 3D: Three.js mit @react-three/fiber
+- Backend: Node.js Express API
+- Database: SQLite
+- Build: Vite
+
+**Wichtige Befehle:**
+- `npm run dev` - Development Server
+- `npm run build` - Production Build
+- `npm run lint` - Code Linting
+- `npm run db:init` - Database Setup
+- `npm run db:server` - API Server
+
+**Code-Standards:**
+- TypeScript strict mode
+- ESLint für Code-Qualität
+- Functional Components mit Hooks
+- Tailwind für Styling
+- Modulare Komponentenstruktur
+
+**Wichtige Dateien:**
+- `src/App.tsx` - Hauptkomponente
+- `src/components/` - React Komponenten
+- `src/types/` - TypeScript Definitionen
+- `DB/` - Datenbanklogik
+- `SikoraLineConfigurator.tsx` - Hauptkonfigurator
+
+Bitte halte dich an die bestehende Projektstruktur und Coding-Standards.
+"""
+
+[ai.context]
+# Kontext für besseres Verständnis
+max_tokens = 100000
+model_preference = "claude-3-5-sonnet" 
