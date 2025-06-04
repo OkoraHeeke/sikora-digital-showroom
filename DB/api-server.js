@@ -205,6 +205,147 @@ app.get('/api/products/:name', async (req, res) => {
   }
 });
 
+// Admin: Produkt erstellen
+app.post('/api/products', async (req, res) => {
+  try {
+    const { Name, HTMLDescription_EN, HTMLDescription_DE, ImageUrl, Object3D_Url } = req.body;
+
+    // Validierung
+    if (!Name || !HTMLDescription_EN || !HTMLDescription_DE || !ImageUrl || !Object3D_Url) {
+      return sendResponse(res, null, new Error('Alle Felder sind erforderlich'));
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      db.run(`
+        INSERT INTO Product (Name, HTMLDescription_EN, HTMLDescription_DE, ImageUrl, Object3D_Url)
+        VALUES (?, ?, ?, ?, ?)
+      `, [Name, HTMLDescription_EN, HTMLDescription_DE, ImageUrl, Object3D_Url], function(err) {
+        if (err) reject(err);
+        else resolve({ name: Name });
+      });
+    });
+
+    sendResponse(res, { name: result.name, message: 'Produkt erfolgreich erstellt' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Produkt aktualisieren
+app.put('/api/products/:name', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const { Name, HTMLDescription_EN, HTMLDescription_DE, ImageUrl, Object3D_Url } = req.body;
+
+    // Validierung
+    if (!Name || !HTMLDescription_EN || !HTMLDescription_DE || !ImageUrl || !Object3D_Url) {
+      return sendResponse(res, null, new Error('Alle Felder sind erforderlich'));
+    }
+
+    const decodedName = decodeURIComponent(name);
+
+    await new Promise((resolve, reject) => {
+      db.run(`
+        UPDATE Product
+        SET Name = ?, HTMLDescription_EN = ?, HTMLDescription_DE = ?, ImageUrl = ?, Object3D_Url = ?
+        WHERE Name = ?
+      `, [Name, HTMLDescription_EN, HTMLDescription_DE, ImageUrl, Object3D_Url, decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, { message: 'Produkt erfolgreich aktualisiert' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Produkt löschen
+app.delete('/api/products/:name', async (req, res) => {
+  try {
+    const { name } = req.params;
+    const decodedName = decodeURIComponent(name);
+
+    // Zuerst alle Verknüpfungen löschen
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Join_Product_Category WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Join_Product_MeasureParameter WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Join_MeasurePoint_Product WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Join_Scene_Product WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Produktdetails löschen
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM ProductSpecification WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM ProductFeature WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM ProductAdvantage WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM ProductInstallation WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM ProductDatasheet WHERE Product_Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Dann das Produkt löschen
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Product WHERE Name = ?', [decodedName], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, { message: 'Produkt erfolgreich gelöscht' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
 // === PRODUKTDETAILS ===
 // Product Specifications
 app.get('/api/products/:name/specifications', async (req, res) => {
@@ -286,6 +427,87 @@ app.get('/api/categories', async (req, res) => {
   try {
     const categories = await queryDb('SELECT * FROM ProductCategory ORDER BY Id');
     sendResponse(res, categories);
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Kategorie erstellen
+app.post('/api/categories', async (req, res) => {
+  try {
+    const { Name_EN, Name_DE } = req.body;
+
+    // Validierung
+    if (!Name_EN || !Name_DE) {
+      return sendResponse(res, null, new Error('Alle Felder sind erforderlich'));
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      db.run(`
+        INSERT INTO ProductCategory (Name_EN, Name_DE)
+        VALUES (?, ?)
+      `, [Name_EN, Name_DE], function(err) {
+        if (err) reject(err);
+        else resolve({ id: this.lastID });
+      });
+    });
+
+    sendResponse(res, { id: result.id, message: 'Kategorie erfolgreich erstellt' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Kategorie aktualisieren
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { Name_EN, Name_DE } = req.body;
+
+    // Validierung
+    if (!Name_EN || !Name_DE) {
+      return sendResponse(res, null, new Error('Alle Felder sind erforderlich'));
+    }
+
+    await new Promise((resolve, reject) => {
+      db.run(`
+        UPDATE ProductCategory
+        SET Name_EN = ?, Name_DE = ?
+        WHERE Id = ?
+      `, [Name_EN, Name_DE, id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, { message: 'Kategorie erfolgreich aktualisiert' });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Admin: Kategorie löschen
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Zuerst alle Verknüpfungen löschen
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM Join_Product_Category WHERE Category_Id = ?', [id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Dann die Kategorie löschen
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM ProductCategory WHERE Id = ?', [id], function(err) {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    sendResponse(res, { message: 'Kategorie erfolgreich gelöscht' });
   } catch (error) {
     sendResponse(res, null, error);
   }
