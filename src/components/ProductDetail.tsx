@@ -218,13 +218,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="container mx-auto px-6 py-8 max-w-none">
+        <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-8">
           
-          {/* 3D Model - Large Center Panel */}
-          <div className="xl:col-span-2">
+          {/* 3D Model - Takes most of the screen */}
+          <div className="lg:col-span-3 xl:col-span-4">
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-              <div className="h-[500px] lg:h-[600px] relative bg-gradient-to-br from-gray-50 to-gray-100">
+              <div className="h-[500px] lg:h-[700px] xl:h-[800px] relative bg-gradient-to-br from-gray-50 to-gray-100">
                 {modelUrl && !model3DError ? (
                   <Canvas 
                     camera={{ position: [4, 4, 4], fov: 45 }}
@@ -314,15 +314,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             </div>
           </div>
 
-          {/* Product Information Sidebar */}
-          <div className="xl:col-span-1">
+          {/* Product Information Sidebar - Compact but informative */}
+          <div className="lg:col-span-1 xl:col-span-1">
             <div className="bg-white rounded-2xl shadow-xl overflow-hidden sticky top-8">
               
               {/* Tab Navigation */}
               <div className="border-b border-gray-200">
-                <nav className="flex">
+                <nav className="grid grid-cols-2 lg:grid-cols-1">
                   {[
-                    { id: 'overview', label: 'Überblick', icon: Info },
+                    { id: 'overview', label: 'Info', icon: Info },
                     { id: 'specifications', label: 'Daten', icon: Settings },
                     { id: 'features', label: 'Features', icon: Zap },
                     { id: 'installation', label: 'Setup', icon: FileText }
@@ -330,27 +330,27 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex-1 flex flex-col items-center gap-1 py-4 px-2 text-xs font-medium transition-colors ${
+                      className={`flex items-center justify-center gap-2 py-3 px-2 text-xs font-medium transition-colors ${
                         activeTab === tab.id
-                          ? 'text-sikora-blue border-b-2 border-sikora-blue bg-blue-50'
+                          ? 'text-sikora-blue border-b-2 lg:border-b-0 lg:border-r-2 border-sikora-blue bg-blue-50'
                           : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                       }`}
                     >
                       <tab.icon className="w-4 h-4" />
-                      {tab.label}
+                      <span className="hidden sm:inline">{tab.label}</span>
                     </button>
                   ))}
                 </nav>
               </div>
 
               {/* Tab Content */}
-              <div className="p-6 max-h-[600px] overflow-y-auto">
+              <div className="p-4 max-h-[600px] overflow-y-auto">
                 {activeTab === 'overview' && (
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-3">Produktbeschreibung</h3>
                       <div 
-                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed text-sm"
                         dangerouslySetInnerHTML={{ 
                           __html: product.HTMLDescription_DE || product.HTMLDescription_EN || 'Keine Beschreibung verfügbar'
                         }}
@@ -359,14 +359,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                     
                     {product.advantages.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-gray-900 mb-4">Ihre Vorteile</h4>
-                        <div className="space-y-3">
-                          {product.advantages.map((advantage) => (
-                            <div key={advantage.Id} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                              <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{advantage.Advantage_DE || advantage.Advantage_EN}</span>
+                        <h4 className="font-semibold text-gray-900 mb-3">Ihre Vorteile</h4>
+                        <div className="space-y-2">
+                          {product.advantages.slice(0, 3).map((advantage) => (
+                            <div key={advantage.Id} className="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+                              <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-xs text-gray-700">{advantage.Advantage_DE || advantage.Advantage_EN}</span>
                             </div>
                           ))}
+                          {product.advantages.length > 3 && (
+                            <p className="text-xs text-gray-500 italic">
+                              +{product.advantages.length - 3} weitere Vorteile
+                            </p>
+                          )}
                         </div>
                       </div>
                     )}
@@ -375,24 +380,24 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'specifications' && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Technische Spezifikationen</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Technische Daten</h3>
                     {product.specifications.length > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {product.specifications.map((spec) => (
-                          <div key={spec.Id} className="border border-gray-200 rounded-lg p-4">
-                            <div className="font-medium text-gray-900 text-sm mb-2">
+                          <div key={spec.Id} className="border border-gray-200 rounded-lg p-3">
+                            <div className="font-medium text-gray-900 text-xs mb-1">
                               {spec.Title_DE || spec.Title_EN}
                             </div>
-                            <div className="text-sikora-blue font-semibold">
+                            <div className="text-sikora-blue font-semibold text-sm">
                               {spec.Value_DE || spec.Value_EN}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <Settings className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>Keine technischen Daten verfügbar</p>
+                      <div className="text-center py-6 text-gray-500">
+                        <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Keine technischen Daten verfügbar</p>
                       </div>
                     )}
                   </div>
@@ -400,20 +405,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'features' && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Produktfeatures</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Features</h3>
                     {product.features.length > 0 ? (
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         {product.features.map((feature) => (
-                          <div key={feature.Id} className="flex items-start gap-3 p-3 border border-blue-200 rounded-lg bg-blue-50">
-                            <Zap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-gray-700">{feature.Feature_DE || feature.Feature_EN}</span>
+                          <div key={feature.Id} className="flex items-start gap-2 p-2 border border-blue-200 rounded-lg bg-blue-50">
+                            <Zap className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-xs text-gray-700">{feature.Feature_DE || feature.Feature_EN}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <Zap className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>Keine Features verfügbar</p>
+                      <div className="text-center py-6 text-gray-500">
+                        <Zap className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Keine Features verfügbar</p>
                       </div>
                     )}
                   </div>
@@ -421,18 +426,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'installation' && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Installation & Setup</h3>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Setup</h3>
                     {product.installation ? (
                       <div 
-                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed text-sm"
                         dangerouslySetInnerHTML={{ 
                           __html: product.installation.InstallationInfo_DE || product.installation.InstallationInfo_EN 
                         }}
                       />
                     ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                        <p>Keine Installationsinformationen verfügbar</p>
+                      <div className="text-center py-6 text-gray-500">
+                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Keine Setup-Informationen verfügbar</p>
                       </div>
                     )}
                   </div>
