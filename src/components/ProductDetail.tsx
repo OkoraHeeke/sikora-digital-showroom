@@ -162,43 +162,40 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Header */}
+      {/* Kompakter Header */}
       <div className={`bg-gradient-to-r ${techGradient} text-white`}>
-        <div className="container mx-auto px-6 py-8">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
               <button
                 onClick={onBack}
-                className="flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                className="flex items-center px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
               >
-                <ArrowLeft className="w-5 h-5 mr-2" />
+                <ArrowLeft className="w-4 h-4 mr-2" />
                 {backButtonLabel}
               </button>
               
               <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-medium">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium">
                     {technology}
                   </span>
-                  <span className="text-white/80">SIKORA Messtechnik</span>
+                  <span className="text-white/80 text-sm">SIKORA Messtechnik</span>
                 </div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-2">
+                <h1 className="text-2xl lg:text-3xl font-bold">
                   {formatSikoraProductName(product.Name)}
                 </h1>
-                <p className="text-white/90 text-lg max-w-2xl">
-                  Professionelle Messtechnik für industrielle Anwendungen
-                </p>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="hidden lg:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-3">
               {product.datasheet && (
                 <button
                   onClick={handleDatasheetDownload}
-                  className="flex items-center gap-2 px-6 py-3 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
                 >
-                  <Download className="w-5 h-5" />
+                  <Download className="w-4 h-4" />
                   Datenblatt
                 </button>
               )}
@@ -206,9 +203,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               {onLoadToMeasurePoint && availableMeasurePoints.length > 0 && (
                 <button
                   onClick={() => setShowLoadDialog(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
                 >
-                  <Target className="w-5 h-5" />
+                  <Target className="w-4 h-4" />
                   Auf Messpunkt laden
                 </button>
               )}
@@ -218,13 +215,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-8 max-w-none">
-        <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+      <div className="container mx-auto px-6 py-6 max-w-none">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
-          {/* 3D Model - Takes most of the screen */}
-          <div className="lg:col-span-3 xl:col-span-4">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-              <div className="h-[500px] lg:h-[700px] xl:h-[800px] relative bg-gradient-to-br from-gray-50 to-gray-100">
+          {/* 3D Model - Takes 2/3 of the screen */}
+          <div className="lg:col-span-2">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <div className="h-[500px] lg:h-[650px] relative bg-gradient-to-br from-gray-50 to-gray-100">
                 {modelUrl && !model3DError ? (
                   <Canvas 
                     camera={{ position: [4, 4, 4], fov: 45 }}
@@ -260,20 +257,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 )}
                 
                 {/* 3D Controls */}
-                <div className="absolute bottom-6 left-6 right-6">
-                  <div className="bg-black/80 backdrop-blur-md text-white rounded-xl p-4">
+                <div className="absolute bottom-4 left-4 right-4">
+                  <div className="bg-black/80 backdrop-blur-md text-white rounded-lg p-3">
                     <div className="flex items-center justify-between">
                       <div className="grid grid-cols-3 gap-4 text-sm">
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">🖱️</span>
+                          <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs">🖱️</span>
                           <span>Rotieren</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">⚙️</span>
+                          <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs">⚙️</span>
                           <span>Zoomen</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center text-xs">🔄</span>
+                          <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs">🔄</span>
                           <span>Verschieben</span>
                         </div>
                       </div>
@@ -282,7 +279,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                         className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
                         title="3D-Ansicht zurücksetzen"
                       >
-                        <RotateCcw className="w-5 h-5" />
+                        <RotateCcw className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
@@ -291,13 +288,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             </div>
 
             {/* Mobile Action Buttons */}
-            <div className="lg:hidden mt-6 flex gap-4">
+            <div className="lg:hidden mt-4 flex gap-3">
               {product.datasheet && (
                 <button
                   onClick={handleDatasheetDownload}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
                 >
-                  <Download className="w-5 h-5" />
+                  <Download className="w-4 h-4" />
                   Datenblatt
                 </button>
               )}
@@ -307,50 +304,50 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   onClick={() => setShowLoadDialog(true)}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
-                  <Target className="w-5 h-5" />
+                  <Target className="w-4 h-4" />
                   Auf Messpunkt laden
                 </button>
               )}
             </div>
           </div>
 
-          {/* Product Information Sidebar - Compact but informative */}
-          <div className="lg:col-span-1 xl:col-span-1">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden sticky top-8">
+          {/* Product Information Panel - Now bigger (1/3 of screen) */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full">
               
-              {/* Tab Navigation */}
-              <div className="border-b border-gray-200">
-                <nav className="grid grid-cols-2 lg:grid-cols-1">
+              {/* Section Navigation - Horizontal Pills */}
+              <div className="border-b border-gray-200 p-4">
+                <div className="flex flex-wrap gap-2">
                   {[
-                    { id: 'overview', label: 'Info', icon: Info },
-                    { id: 'specifications', label: 'Daten', icon: Settings },
+                    { id: 'overview', label: 'Überblick', icon: Info },
+                    { id: 'specifications', label: 'Technische Daten', icon: Settings },
                     { id: 'features', label: 'Features', icon: Zap },
-                    { id: 'installation', label: 'Setup', icon: FileText }
+                    { id: 'installation', label: 'Installation', icon: FileText }
                   ].map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center justify-center gap-2 py-3 px-2 text-xs font-medium transition-colors ${
+                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                         activeTab === tab.id
-                          ? 'text-sikora-blue border-b-2 lg:border-b-0 lg:border-r-2 border-sikora-blue bg-blue-50'
-                          : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                          ? 'bg-sikora-blue text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
                     >
                       <tab.icon className="w-4 h-4" />
                       <span className="hidden sm:inline">{tab.label}</span>
                     </button>
                   ))}
-                </nav>
+                </div>
               </div>
 
-              {/* Tab Content */}
-              <div className="p-4 max-h-[600px] overflow-y-auto">
+              {/* Tab Content - More space now */}
+              <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
                 {activeTab === 'overview' && (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-3">Produktbeschreibung</h3>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Produktbeschreibung</h3>
                       <div 
-                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed text-sm"
+                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
                         dangerouslySetInnerHTML={{ 
                           __html: product.HTMLDescription_DE || product.HTMLDescription_EN || 'Keine Beschreibung verfügbar'
                         }}
@@ -359,19 +356,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                     
                     {product.advantages.length > 0 && (
                       <div>
-                        <h4 className="font-semibold text-gray-900 mb-3">Ihre Vorteile</h4>
-                        <div className="space-y-2">
-                          {product.advantages.slice(0, 3).map((advantage) => (
-                            <div key={advantage.Id} className="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
-                              <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-xs text-gray-700">{advantage.Advantage_DE || advantage.Advantage_EN}</span>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Ihre Vorteile</h4>
+                        <div className="space-y-3">
+                          {product.advantages.map((advantage) => (
+                            <div key={advantage.Id} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                              <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700">{advantage.Advantage_DE || advantage.Advantage_EN}</span>
                             </div>
                           ))}
-                          {product.advantages.length > 3 && (
-                            <p className="text-xs text-gray-500 italic">
-                              +{product.advantages.length - 3} weitere Vorteile
-                            </p>
-                          )}
                         </div>
                       </div>
                     )}
@@ -380,24 +372,24 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'specifications' && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Technische Daten</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-6">Technische Spezifikationen</h3>
                     {product.specifications.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         {product.specifications.map((spec) => (
-                          <div key={spec.Id} className="border border-gray-200 rounded-lg p-3">
-                            <div className="font-medium text-gray-900 text-xs mb-1">
+                          <div key={spec.Id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                            <div className="font-medium text-gray-900 mb-2">
                               {spec.Title_DE || spec.Title_EN}
                             </div>
-                            <div className="text-sikora-blue font-semibold text-sm">
+                            <div className="text-sikora-blue font-semibold">
                               {spec.Value_DE || spec.Value_EN}
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-6 text-gray-500">
-                        <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Keine technischen Daten verfügbar</p>
+                      <div className="text-center py-12 text-gray-500">
+                        <Settings className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg">Keine technischen Daten verfügbar</p>
                       </div>
                     )}
                   </div>
@@ -405,20 +397,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'features' && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Features</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-6">Produktfeatures</h3>
                     {product.features.length > 0 ? (
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {product.features.map((feature) => (
-                          <div key={feature.Id} className="flex items-start gap-2 p-2 border border-blue-200 rounded-lg bg-blue-50">
-                            <Zap className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-xs text-gray-700">{feature.Feature_DE || feature.Feature_EN}</span>
+                          <div key={feature.Id} className="flex items-start gap-3 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                            <Zap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <span className="text-sm text-gray-700">{feature.Feature_DE || feature.Feature_EN}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-6 text-gray-500">
-                        <Zap className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Keine Features verfügbar</p>
+                      <div className="text-center py-12 text-gray-500">
+                        <Zap className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg">Keine Features verfügbar</p>
                       </div>
                     )}
                   </div>
@@ -426,18 +418,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'installation' && (
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Setup</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-6">Installation & Setup</h3>
                     {product.installation ? (
                       <div 
-                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed text-sm"
+                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
                         dangerouslySetInnerHTML={{ 
                           __html: product.installation.InstallationInfo_DE || product.installation.InstallationInfo_EN 
                         }}
                       />
                     ) : (
-                      <div className="text-center py-6 text-gray-500">
-                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                        <p className="text-sm">Keine Setup-Informationen verfügbar</p>
+                      <div className="text-center py-12 text-gray-500">
+                        <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg">Keine Setup-Informationen verfügbar</p>
                       </div>
                     )}
                   </div>
