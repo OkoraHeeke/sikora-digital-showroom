@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Filter, ArrowLeft, ExternalLink, Grid, List, MapPin, Info } from 'lucide-react';
+import { Search, Filter, ArrowLeft, ExternalLink, Grid, List, MapPin, Info, Lightbulb } from 'lucide-react';
 import { databaseService, formatSikoraProductName } from '../services/database';
+import { useLanguage } from '../contexts/LanguageContext';
+import ProductRecommendationWizard from './ProductRecommendationWizard';
 import type { Product, ProductCategory, MeasurePoint } from '../types';
 
 interface ProductCatalogProps {
@@ -11,13 +13,14 @@ interface ProductCatalogProps {
   showMeasurePointInfo?: boolean;
 }
 
-const ProductCatalog: React.FC<ProductCatalogProps> = ({ 
-  onBackToLineSelection, 
+const ProductCatalog: React.FC<ProductCatalogProps> = ({
+  onBackToLineSelection,
   onProductSelect,
-  backButtonLabel = "Zurück",
+  backButtonLabel,
   selectedMeasurePoint,
   showMeasurePointInfo = false
 }) => {
+  const { t } = useLanguage();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -27,6 +30,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showWizard, setShowWizard] = useState(false);
 
   // Technology categories for better filtering
   const technologies = [
@@ -49,20 +53,20 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           databaseService.getProducts(),
           databaseService.getProductCategories()
         ]);
-        
+
         setProducts(productsData);
         setCategories(categoriesData);
         setFilteredProducts(productsData);
       } catch (err) {
         console.error('Failed to load catalog data:', err);
-        setError('Fehler beim Laden des Produktkatalogs');
+        setError(t('errorLoadingCatalog', 'Fehler beim Laden des Produktkatalogs', 'Error loading product catalog'));
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, []);
+  }, [t]);
 
   // Filter products based on search, category and technology
   useEffect(() => {
@@ -79,7 +83,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
     // Filter by technology
     if (selectedTechnology) {
-      filtered = filtered.filter(product => 
+      filtered = filtered.filter(product =>
         product.Name.includes(selectedTechnology)
       );
     }
@@ -123,7 +127,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       cleanPath = cleanPath.replace(/x-ray_8000/g, 'x_ray_8000');
       cleanPath = cleanPath.replace(/\/spark\//g, '/spark_2000_6000/');
       cleanPath = cleanPath.replace(/\/remote\//g, '/remote_6000/');
-      
+
       const finalUrl = `/api/assets/${cleanPath}`;
       return finalUrl;
     }
@@ -151,7 +155,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="loading-spinner w-8 h-8 mx-auto mb-4"></div>
-          <p className="text-gray-600">Lade Produktkatalog...</p>
+          <p className="text-gray-600">{t('loadingCatalog', 'Lade Produktkatalog...', 'Loading product catalog...')}</p>
         </div>
       </div>
     );
@@ -162,11 +166,11 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center text-red-600">
           <p className="text-xl mb-4">⚠️ {error}</p>
-          <button 
+          <button
             onClick={onBackToLineSelection}
             className="px-4 py-2 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan"
           >
-            {backButtonLabel}
+            {backButtonLabel || t('back', 'Zurück', 'Back')}
           </button>
         </div>
       </div>
@@ -185,15 +189,25 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 className="flex items-center text-sikora-blue hover:text-sikora-cyan transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                {backButtonLabel}
+                {backButtonLabel || t('back', 'Zurück', 'Back')}
               </button>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue">
-                SIKORA Produktkatalog
+                {t('sikoraProductCatalog', 'SIKORA Produktkatalog', 'SIKORA Product Catalog')}
               </h1>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
+              {/* Produktempfehlungs-Button */}
+              <button
+                onClick={() => setShowWizard(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white rounded-lg hover:from-sikora-cyan hover:to-sikora-blue transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
+              >
+                <Lightbulb className="w-4 h-4" />
+                <span className="hidden sm:inline">Produktempfehlung</span>
+                <span className="sm:hidden">Empfehlung</span>
+              </button>
+
               <div className="text-xs sm:text-sm text-gray-600 bg-gray-100 px-2 sm:px-3 py-1 rounded-full">
-                {filteredProducts.length} von {products.length} Produkten
+                {filteredProducts.length} {t('of', 'von', 'of')} {products.length} {t('products', 'Produkten', 'products')}
               </div>
               {/* View Mode Toggle */}
               <div className="flex bg-gray-100 rounded-lg p-1">
@@ -226,21 +240,20 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2">
                 <MapPin className="w-5 h-5" />
-                <span className="font-medium">Ausgewählter Messpunkt:</span>
+                <span className="font-medium">{t('selectedMeasurePoint', 'Ausgewählter Messpunkt', 'Selected Measure Point')}:</span>
               </div>
               <div className="flex-1">
                 <h3 className="text-lg font-semibold">
-                  {selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || `Messpunkt ${selectedMeasurePoint.Id}`}
+                  {selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || `${t('measurePoint', 'Messpunkt', 'Measure Point')} ${selectedMeasurePoint.Id}`}
                 </h3>
-                {(selectedMeasurePoint.Description_DE || selectedMeasurePoint.Description_EN) && (
-                  <p className="text-white/90 text-sm mt-1">
-                    {selectedMeasurePoint.Description_DE || selectedMeasurePoint.Description_EN}
-                  </p>
-                )}
+                {/* Description */}
+                <p className="text-sm text-gray-600 mb-4">
+                  {t('selectSuitableDevice', 'Dieser Messpunkt ist ausgewählt. Wählen Sie ein passendes Messgerät aus dem Katalog unten.', 'This measure point is selected. Choose a suitable measuring device from the catalog below.')}
+                </p>
               </div>
               <div className="hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
                 <Info className="w-4 h-4" />
-                <span className="text-sm">Produkte für diesen Messpunkt</span>
+                <span className="text-sm">{t('productsForMeasurePoint', 'Produkte für diesen Messpunkt', 'Products for this measure point')}</span>
               </div>
             </div>
           </div>
@@ -256,9 +269,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
               <input
                 type="text"
-                placeholder={showMeasurePointInfo && selectedMeasurePoint 
-                  ? `Produkte für ${selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || 'Messpunkt'} durchsuchen...`
-                  : "Produkte durchsuchen..."
+                placeholder={showMeasurePointInfo && selectedMeasurePoint
+                  ? `${t('searchProductsFor', 'Produkte für', 'Search products for')} ${selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || t('measurePoint', 'Messpunkt', 'Measure Point')} ${t('search', 'durchsuchen...', 'search...')}`
+                  : t('searchProducts', 'Produkte durchsuchen...', 'Search products...')
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -272,7 +285,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 onClick={clearAllFilters}
                 className="px-3 py-1.5 text-xs sm:text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
               >
-                Alle anzeigen
+                {t('showAll', 'Alle anzeigen', 'Show all')}
               </button>
               {technologies.map((tech) => (
                 <button
@@ -293,7 +306,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             {(searchTerm || selectedCategory || selectedTechnology) && (
               <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                 <Filter className="w-4 h-4" />
-                <span>Aktive Filter:</span>
+                <span>{t('activeFilters', 'Aktive Filter', 'Active filters')}:</span>
                 {searchTerm && (
                   <span className="bg-sikora-blue text-white px-2 py-1 rounded">
                     "{searchTerm}"
@@ -308,7 +321,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   onClick={clearAllFilters}
                   className="text-sikora-blue hover:text-sikora-cyan underline"
                 >
-                  Alle löschen
+                  {t('clearAll', 'Alle löschen', 'Clear all')}
                 </button>
               </div>
             )}
@@ -321,31 +334,31 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
         <div className="w-full px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {Object.keys(groupedProducts).length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">Keine Produkte gefunden.</p>
+              <p className="text-gray-500 text-lg">{t('noProductsFound', 'Keine Produkte gefunden.', 'No products found.')}</p>
               {showMeasurePointInfo && selectedMeasurePoint ? (
                 <p className="text-gray-400 mt-2">
-                  Keine Produkte für Messpunkt "{selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN}" gefunden.
+                  {t('noProductsForMeasurePoint', 'Keine Produkte für Messpunkt', 'No products found for measure point')} "{selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN}" {t('found', 'gefunden', 'found')}.
                 </p>
               ) : (
-                <p className="text-gray-400 mt-2">Versuchen Sie andere Suchbegriffe oder Filter.</p>
+                <p className="text-gray-400 mt-2">{t('tryOtherFilters', 'Versuchen Sie andere Suchbegriffe oder Filter.', 'Try other search terms or filters.')}</p>
               )}
               <button
                 onClick={clearAllFilters}
                 className="mt-4 px-4 py-2 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan"
               >
-                Filter zurücksetzen
+                {t('resetFilters', 'Filter zurücksetzen', 'Reset filters')}
               </button>
             </div>
           ) : (
             Object.entries(groupedProducts).map(([series, seriesProducts]) => (
               <div key={series} className="mb-8 sm:mb-12">
                 <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue mb-4 sm:mb-6 border-b border-gray-200 pb-2">
-                  {formatSikoraProductName(series)} Serie
+                  {formatSikoraProductName(series)} {t('series', 'Serie', 'Series')}
                   <span className="ml-3 text-sm sm:text-base font-normal text-gray-500">
-                    ({seriesProducts.length} Produkte)
+                    ({seriesProducts.length} {t('products', 'Produkte', 'Products')})
                   </span>
                 </h2>
-                
+
                 <div className={
                   viewMode === 'grid'
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"
@@ -383,10 +396,10 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                         <h3 className="font-bold text-sm sm:text-lg text-sikora-blue mb-2 sikora-product-name">
                           {formatSikoraProductName(product.Name)}
                         </h3>
-                        
-                        <div 
+
+                        <div
                           className="text-xs sm:text-sm text-gray-600 line-clamp-3 mb-3 sm:mb-4 flex-1"
-                          dangerouslySetInnerHTML={{ 
+                          dangerouslySetInnerHTML={{
                             __html: product.HTMLDescription_DE || product.HTMLDescription_EN || ''
                           }}
                         />
@@ -395,14 +408,14 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                           <div className="text-xs text-gray-500">
                             SIKORA Messtechnik
                           </div>
-                          
+
                           {/* Single Details Button */}
                           <button
                             onClick={() => onProductSelect?.(product.Name)}
                             className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors"
                           >
                             <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-                            Details ansehen
+                            {t('viewDetails', 'Details ansehen', 'View details')}
                           </button>
                         </div>
                       </div>
@@ -414,8 +427,19 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           )}
         </div>
       </div>
+
+      {/* Produktempfehlungs-Wizard */}
+      {showWizard && (
+        <ProductRecommendationWizard
+          onClose={() => setShowWizard(false)}
+          onProductSelect={(productName) => {
+            setShowWizard(false);
+            onProductSelect?.(productName);
+          }}
+        />
+      )}
     </div>
   );
 };
 
-export default ProductCatalog; 
+export default ProductCatalog;

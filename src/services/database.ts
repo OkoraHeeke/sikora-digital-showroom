@@ -24,17 +24,17 @@ class SikoraDatabaseService implements DatabaseService {
   private async fetchApi<T>(endpoint: string): Promise<T> {
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const result: ApiResponse<T> = await response.json();
-      
+
       if (!result.success) {
         throw new Error(result.error || 'API request failed');
       }
-      
+
       return result.data as T;
     } catch (error) {
       console.error(`API request failed for ${endpoint}:`, error);
@@ -147,6 +147,10 @@ class SikoraDatabaseService implements DatabaseService {
   // Kategorien
   async getProductCategories(): Promise<ProductCategory[]> {
     return this.fetchApi<ProductCategory[]>('/categories');
+  }
+
+  async getProductCategoriesForProduct(productName: string): Promise<ProductCategory[]> {
+    return this.fetchApi<ProductCategory[]>(`/products/${encodeURIComponent(productName)}/categories`);
   }
 
   async getProductsByCategory(categoryId: number): Promise<Product[]> {
@@ -273,4 +277,4 @@ export const createFallbackData = () => {
       }
     ]
   };
-}; 
+};
