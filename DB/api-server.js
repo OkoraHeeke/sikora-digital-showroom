@@ -631,6 +631,116 @@ app.get('/api/debug/schema/:table', async (req, res) => {
   }
 });
 
+// Debug: Verfügbare 3D-Modelle auflisten
+app.get('/api/debug/models', async (req, res) => {
+  try {
+    const fs = require('fs').promises;
+    const modelsPath = path.join(__dirname, '..', 'assets', 'models');
+
+    const scanDirectory = async (dir, basePath = '') => {
+      const models = [];
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          const relativePath = path.join(basePath, entry.name);
+
+          if (entry.isDirectory()) {
+            // Rekursiv in Unterverzeichnisse schauen
+            const subModels = await scanDirectory(fullPath, relativePath);
+            models.push(...subModels);
+          } else if (entry.name.endsWith('.glb') || entry.name.endsWith('.gltf')) {
+            // 3D-Modell gefunden
+            const stats = await fs.stat(fullPath);
+            models.push({
+              name: entry.name,
+              path: relativePath.replace(/\\/g, '/'), // Normalize path for URLs
+              url: `/api/assets/models/${relativePath.replace(/\\/g, '/')}`,
+              size: stats.size,
+              lastModified: stats.mtime
+            });
+          }
+        }
+      } catch (error) {
+        console.error(`Error scanning directory ${dir}:`, error);
+      }
+
+      return models;
+    };
+
+    const models = await scanDirectory(modelsPath);
+
+    sendResponse(res, {
+      total: models.length,
+      models: models.sort((a, b) => a.path.localeCompare(b.path))
+    });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
+// Debug: 3D-Modell-Status prüfen
+app.get('/api/debug/models/status', async (req, res) => {
+  try {
+    // Alle Produkte mit 3D-Modell URLs aus der Datenbank
+    const products = await queryDb(`
+      SELECT Name, Object3D_Url
+      FROM Product
+      WHERE Object3D_Url IS NOT NULL AND Object3D_Url != ''
+      ORDER BY Name
+    `);
+
+    const fs = require('fs').promises;
+    const modelsPath = path.join(__dirname, '..', 'assets');
+
+    const modelStatus = [];
+
+    for (const product of products) {
+      let exists = false;
+      let filePath = '';
+      let actualUrl = product.Object3D_Url;
+
+      // Normalize URL and check if file exists
+      if (actualUrl.startsWith('public/')) {
+        actualUrl = actualUrl.replace('public/', '');
+      }
+
+      filePath = path.join(modelsPath, actualUrl);
+
+      try {
+        await fs.access(filePath);
+        exists = true;
+      } catch (error) {
+        exists = false;
+      }
+
+      modelStatus.push({
+        product: product.Name,
+        dbUrl: product.Object3D_Url,
+        apiUrl: `/api/assets/${actualUrl}`,
+        filePath: actualUrl,
+        exists: exists
+      });
+    }
+
+    const existingCount = modelStatus.filter(m => m.exists).length;
+    const missingCount = modelStatus.filter(m => !m.exists).length;
+
+    sendResponse(res, {
+      summary: {
+        total: modelStatus.length,
+        existing: existingCount,
+        missing: missingCount,
+        percentage: Math.round((existingCount / modelStatus.length) * 100)
+      },
+      models: modelStatus
+    });
+  } catch (error) {
+    sendResponse(res, null, error);
+  }
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
