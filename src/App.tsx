@@ -51,6 +51,7 @@ function App() {
 
   // New state for views
   const [currentView, setCurrentView] = useState<'lineSelection' | 'configuration' | 'productCatalog' | 'productDetail' | 'admin'>('lineSelection');
+  const [previousView, setPreviousView] = useState<'lineSelection' | 'configuration' | 'productCatalog' | 'productDetail' | 'admin'>('lineSelection');
   const [sceneData, setSceneData] = useState<SceneData | null>(null);
   const [selectedProductDetails, setSelectedProductDetails] = useState<ProductWithDetails | null>(null);
   const [selectedProductName, setSelectedProductName] = useState<string>('');
@@ -194,18 +195,20 @@ function App() {
   }, [updateState]);
 
   const handleShowProductCatalog = useCallback(() => {
+    setPreviousView(currentView);
     setCurrentView('productCatalog');
-  }, []);
+  }, [currentView]);
 
   const handleProductCatalogSelect = useCallback((productName: string) => {
     setSelectedProductName(productName);
+    setPreviousView('productCatalog');
     setCurrentView('productDetail');
   }, []);
 
   const handleLoadToMeasurePoint = useCallback((productName: string, measurePointId?: string) => {
     // If measurePointId is provided, use it, otherwise use current selected measure point
     const targetMeasurePoint = measurePointId || state.selectedMeasurePoint;
-
+    
     if (targetMeasurePoint) {
       setState(prev => ({
         ...prev,
@@ -213,18 +216,18 @@ function App() {
           ...prev.configuration,
           [targetMeasurePoint]: productName
         },
-        selectedProduct: productName
+        selectedProduct: productName,
+        selectedMeasurePoint: targetMeasurePoint
       }));
-
+      
       // Load product details
       loadProductDetails(productName);
-
-      // Switch back to configuration view if we're in the catalog
-      if (currentView === 'productCatalog') {
-        setCurrentView('configuration');
-      }
+      
+      // Always go back to configuration view after loading to measure point
+      setCurrentView('configuration');
+      setPreviousView('configuration');
     }
-  }, [state.selectedMeasurePoint, loadProductDetails, currentView]);
+  }, [state.selectedMeasurePoint, loadProductDetails]);
 
   const handleMeasurePointSelect = useCallback((measurePointId: string) => {
     updateState({
@@ -269,9 +272,14 @@ function App() {
     }));
   }, []);
 
+  const handleBackFromProductCatalog = useCallback(() => {
+    // Go back to the previous view (either lineSelection or configuration)
+    setCurrentView(previousView);
+  }, [previousView]);
+
   const handleBackFromProductDetail = useCallback(() => {
+    // Go back to product catalog
     setCurrentView('productCatalog');
-    setSelectedProductName('');
   }, []);
 
   const handleShowAdmin = useCallback(() => {
@@ -361,8 +369,9 @@ function App() {
           {currentView === 'productCatalog' && (
             /* Product Catalog View */
             <ProductCatalog
-              onBackToLineSelection={handleBackToLineSelection}
+              onBackToLineSelection={handleBackFromProductCatalog}
               onProductSelect={handleProductCatalogSelect}
+              backButtonLabel={previousView === 'configuration' ? "Zurück zur Szene" : "Zurück zur Startseite"}
             />
           )}
 
@@ -373,6 +382,7 @@ function App() {
               onBack={handleBackFromProductDetail}
               onLoadToMeasurePoint={handleLoadToMeasurePoint}
               availableMeasurePoints={availableMeasurePoints}
+              backButtonLabel="Zurück zum Katalog"
             />
           )}
 

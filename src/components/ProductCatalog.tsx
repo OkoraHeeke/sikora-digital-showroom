@@ -6,11 +6,13 @@ import type { Product, ProductCategory } from '../types';
 interface ProductCatalogProps {
   onBackToLineSelection: () => void;
   onProductSelect?: (productName: string) => void;
+  backButtonLabel?: string;
 }
 
 const ProductCatalog: React.FC<ProductCatalogProps> = ({ 
   onBackToLineSelection, 
-  onProductSelect
+  onProductSelect,
+  backButtonLabel = "Zurück"
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
@@ -160,7 +162,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             onClick={onBackToLineSelection}
             className="px-4 py-2 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan"
           >
-            Zurück zur Startseite
+            {backButtonLabel}
           </button>
         </div>
       </div>
@@ -179,7 +181,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                 className="flex items-center text-sikora-blue hover:text-sikora-cyan transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                Zurück
+                {backButtonLabel}
               </button>
               <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue">
                 SIKORA Produktkatalog

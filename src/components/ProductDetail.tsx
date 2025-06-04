@@ -10,6 +10,7 @@ interface ProductDetailProps {
   onBack: () => void;
   onLoadToMeasurePoint?: (productName: string, measurePointId?: string) => void;
   availableMeasurePoints?: Array<{ id: string; name: string }>;
+  backButtonLabel?: string;
 }
 
 interface Model3DProps {
@@ -34,7 +35,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   productName, 
   onBack, 
   onLoadToMeasurePoint,
-  availableMeasurePoints = []
+  availableMeasurePoints = [],
+  backButtonLabel = "Zurück zum Katalog"
 }) => {
   const [product, setProduct] = useState<ProductWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,7 +149,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             onClick={onBack}
             className="px-6 py-3 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
           >
-            Zurück zum Katalog
+            {backButtonLabel}
           </button>
         </div>
       </div>
@@ -170,7 +172,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 className="flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
               >
                 <ArrowLeft className="w-5 h-5 mr-2" />
-                Zurück zum Katalog
+                {backButtonLabel}
               </button>
               
               <div>
