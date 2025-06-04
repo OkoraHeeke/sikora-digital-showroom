@@ -10,7 +10,10 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives",
     "preview": "vite preview",
     "db:init": "cd DB && node init_database.js",
-    "db:server": "cd DB && node api-server.js"
+    "db:server": "cd DB && node api-server.js",
+    "backend:test": "node test-database.js",
+    "backend:start": "node start-backend.js",
+    "backend:fix": "npm run backend:test && npm run backend:start"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -39,4 +42,4 @@
     "typescript": "^5.2.2",
     "vite": "^4.5.0"
   }
-} 
+}
