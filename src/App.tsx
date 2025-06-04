@@ -164,7 +164,6 @@ function App() {
   const loadProductsForMeasurePoint = useCallback(async (measurePointId: string) => {
     try {
       if (!databaseConnected) return;
-
       const products = await databaseService.getProductsForMeasurePoint(parseInt(measurePointId));
       updateState({ products });
     } catch (err) {
@@ -208,7 +207,7 @@ function App() {
   const handleLoadToMeasurePoint = useCallback((productName: string, measurePointId?: string) => {
     // If measurePointId is provided, use it, otherwise use current selected measure point
     const targetMeasurePoint = measurePointId || state.selectedMeasurePoint;
-    
+
     if (targetMeasurePoint) {
       setState(prev => ({
         ...prev,
@@ -219,10 +218,10 @@ function App() {
         selectedProduct: productName,
         selectedMeasurePoint: targetMeasurePoint
       }));
-      
+
       // Load product details
       loadProductDetails(productName);
-      
+
       // Always go back to configuration view after loading to measure point
       setCurrentView('configuration');
       setPreviousView('configuration');
@@ -230,6 +229,7 @@ function App() {
   }, [state.selectedMeasurePoint, loadProductDetails]);
 
   const handleMeasurePointSelect = useCallback((measurePointId: string) => {
+    // Show measure point details in sidebar
     updateState({
       selectedMeasurePoint: measurePointId,
       selectedProduct: null
@@ -243,10 +243,6 @@ function App() {
     loadProductDetails(productName);
   }, [updateState, loadProductDetails]);
 
-  const handleTabChange = useCallback((tab: 'overview' | 'measurePoints' | 'products') => {
-    // Tab functionality removed - no longer needed
-  }, []);
-
   const handleShowMeasurePoints = useCallback(() => {
     // Simply select a measurement point if available
     if (state.measurePoints.length > 0 && !state.selectedMeasurePoint) {
@@ -259,8 +255,18 @@ function App() {
   }, []);
 
   const handleMeasurePointClick = useCallback((measurePointId: string) => {
-    handleMeasurePointSelect(measurePointId);
-  }, [handleMeasurePointSelect]);
+    // Check if this measure point has an assigned product
+    const assignedProduct = state.configuration[measurePointId];
+
+    if (assignedProduct) {
+      // If product is assigned, show product details in sidebar
+      updateState({ selectedMeasurePoint: measurePointId });
+      handleProductSelect(assignedProduct);
+    } else {
+      // If no product assigned, show measure point details in sidebar
+      handleMeasurePointSelect(measurePointId);
+    }
+  }, [state.configuration, handleMeasurePointSelect, updateState, handleProductSelect]);
 
   const handleConfigureProduct = useCallback((measurePointId: string, productName: string) => {
     setState(prev => ({
@@ -273,7 +279,7 @@ function App() {
   }, []);
 
   const handleBackFromProductCatalog = useCallback(() => {
-    // Go back to the previous view (either lineSelection or configuration)
+    // Go back to the previous view (lineSelection or configuration)
     setCurrentView(previousView);
   }, [previousView]);
 
@@ -295,6 +301,12 @@ function App() {
   const handleAdminSectionChange = useCallback((section: string) => {
     console.log('Admin section changed to:', section);
     setAdminSection(section);
+  }, []);
+
+  // New handler for catalog from sidebar
+  const handleGoToCatalogFromSidebar = useCallback(() => {
+    setPreviousView('configuration');
+    setCurrentView('productCatalog');
   }, []);
 
   // Get selected measure point data
@@ -323,7 +335,7 @@ function App() {
   // Main render
   return (
     <LanguageProvider>
-      <div className="h-screen flex flex-col bg-gray-50">
+      <div className="h-screen flex flex-col bg-gray-50 font-sikora">
         {/* Header */}
         {currentView !== 'admin' && (
           <Header
@@ -334,9 +346,9 @@ function App() {
 
         {/* Database Connection Status */}
         {!databaseConnected && currentView !== 'admin' && (
-          <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-yellow-800 text-sm">
+          <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-yellow-800 text-sm font-sikora">
             ⚠️ Datenbank nicht verbunden - verwende Fallback-Daten.
-            Starten Sie den API-Server mit: <code className="bg-yellow-200 px-1 rounded">npm run db:server</code>
+            Starten Sie den API-Server mit: <code className="bg-yellow-200 px-1 rounded font-sikora">npm run db:server</code>
           </div>
         )}
 
@@ -371,7 +383,11 @@ function App() {
             <ProductCatalog
               onBackToLineSelection={handleBackFromProductCatalog}
               onProductSelect={handleProductCatalogSelect}
-              backButtonLabel={previousView === 'configuration' ? "Zurück zur Szene" : "Zurück zur Startseite"}
+              backButtonLabel={
+                previousView === 'configuration'
+                  ? "Zurück zur Szene"
+                  : "Zurück zur Startseite"
+              }
               selectedMeasurePoint={previousView === 'configuration' ? selectedMeasurePointData : null}
               showMeasurePointInfo={previousView === 'configuration'}
             />
@@ -429,6 +445,7 @@ function App() {
                   onShowProducts={handleShowProducts}
                   onProductSelect={handleProductSelect}
                   onConfigureProduct={handleConfigureProduct}
+                  onGoToCatalog={handleGoToCatalogFromSidebar}
                   loading={state.loading}
                 />
               </div>

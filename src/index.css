@@ -1,45 +1,107 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* SIKORA Corporate Design - Modern Font Alternative */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* SIKORA Corporate Design - CSS Variables */
 :root {
-  --sikora-blue: #003A62;
-  --sikora-cyan: #00A2D4;
-  --sikora-gray: #87888a;
-  --sikora-pipe-blue: #4f8196;
-  --sikora-plastic-green: #4f7d6c;
+  /* Primärfarben */
+  --sikora-blue: #003A62;        /* SIKORA Blau - Pantone 2965 C */
+  --sikora-cyan: #00A2D4;        /* SIKORA Cyan */
+
+  /* Sekundärfarben für Geschäftsbereiche */
+  --sikora-gray: #87888a;        /* Draht & Kabel, Glasfaser */
+  --sikora-pipe-blue: #4f8196;   /* Rohr & Schlauch, Platten */
+  --sikora-plastic-green: #4f7d6c; /* Kunststoff */
+
+  /* ECOCONTROL Monitor Farben */
+  --sikora-monitor-blue: #40b3ff;
+  --sikora-monitor-green: #7bb078;
+  --sikora-monitor-dark-green: #43963e;
+  --sikora-monitor-light-gray: #e8e9e9;
+  --sikora-monitor-dark-gray: #404040;
+  --sikora-monitor-medium-gray: #58595b;
+  --sikora-monitor-red: #ff0000;
+  --sikora-monitor-orange: #ff8d3f;
+
+  /* PURITY System Farben */
+  --sikora-purity-green-1: #92d050;
+  --sikora-purity-blue-2: #9dc3e6;
+  --sikora-purity-orange-3: #f4a778;
+  --sikora-purity-magenta-4: #ff00ff;
+
+  /* FIBER System Farben */
+  --sikora-fiber-blue: #3c6697;
+  --sikora-fiber-pink: #ce697b;
 }
 
 * {
   box-sizing: border-box;
 }
 
+/* SIKORA Corporate Design - Typografie */
 body {
   margin: 0;
-  font-family: 'Inter', 'Futura', 'Trebuchet MS', 'Arial', sans-serif;
+  /* CP Design: Inter als moderne, saubere Alternative zu Futura */
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   font-weight: 400;
+  font-size: 14px;      /* Moderne Standard-Schriftgröße */
+  line-height: 1.5;     /* Bessere Lesbarkeit */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
+  color: #000000;       /* CP Design: Schwarz für Haupttext */
 }
 
-/* SIKORA Corporate Design */
+/* SIKORA Corporate Design - Spezielle Klassen */
 .sikora-product-name {
-  text-transform: uppercase;
+  text-transform: uppercase;  /* CP Design: Produktnamen in VERSALSATZ */
+  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: 0.5px;
+  color: var(--sikora-blue);
 }
 
 .sikora-logo {
-  min-width: 178px;
-  width: min(20vw, 200px);
+  min-width: 100px;     /* Praktische Mindestbreite für Web */
+  width: min(20vw, 200px); /* Logo = 20% der kürzeren Formatseite */
 }
 
-/* Scrollbar Styling */
+/* CP Design: Überschriften - Poppins für geometrischen Look */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Poppins', 'Inter', system-ui, sans-serif;
+  font-weight: 500;  /* CP Design: Medium für Überschriften */
+  color: var(--sikora-blue);
+}
+
+/* CP Design: Fließtext - Inter für Lesbarkeit */
+p, span, div {
+  font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 400;  /* Normal weight für bessere Lesbarkeit */
+}
+
+/* CP Design: E-Mail Fallback Schrift */
+.sikora-email-text {
+  font-family: 'Verdana', 'Geneva', 'Tahoma', sans-serif;
+  font-size: 10pt;
+}
+
+/* CP Design: Mindestschriftgrößen */
+.sikora-print-min {
+  font-size: 9pt;
+  line-height: 1.5;
+}
+
+.sikora-digital-ideal {
+  font-size: 15pt;
+  line-height: 1.5;
+}
+
+/* Scrollbar Styling - SIKORA Farben */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -75,7 +137,7 @@ body {
   animation: shimmer 1.5s infinite;
 }
 
-/* Loading spinner */
+/* Loading spinner - SIKORA Farben */
 .loading-spinner {
   border: 2px solid #f3f3f3;
   border-top: 2px solid var(--sikora-blue);
@@ -108,4 +170,4 @@ body {
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
-} 
+}
