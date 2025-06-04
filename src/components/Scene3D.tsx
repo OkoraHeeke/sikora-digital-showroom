@@ -290,7 +290,7 @@ const Scene3D: React.FC<Scene3DProps> = ({
 
           {/* Boden */}
           <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, -1, 0]}>
-            <planeGeometry args={[50, 50]} />
+            <planeGeometry args={[80, 30]} />
             <meshStandardMaterial color="#f8f9fa" />
           </mesh>
 

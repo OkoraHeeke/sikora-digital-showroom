@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
 import { ArrowLeft, Download, FileText, Target, Check, RotateCcw, Maximize2, Info, Zap, Settings, Package } from 'lucide-react';
 import { databaseService, formatSikoraProductName } from '../services/database';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { ProductWithDetails } from '../types';
 
 interface ProductDetailProps {
@@ -36,8 +37,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   onBack, 
   onLoadToMeasurePoint,
   availableMeasurePoints = [],
-  backButtonLabel = "Zurück zum Katalog"
+  backButtonLabel
 }) => {
+  const { t, language } = useLanguage();
   const [product, setProduct] = useState<ProductWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,18 +56,47 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         if (productDetails) {
           setProduct(productDetails);
         } else {
-          setError('Produkt nicht gefunden');
+          setError(t('productNotFound', 'Produkt nicht gefunden', 'Product not found'));
         }
       } catch (err) {
         console.error('Failed to load product details:', err);
-        setError('Fehler beim Laden der Produktdetails');
+        setError(t('errorLoadingProductDetails', 'Fehler beim Laden der Produktdetails', 'Error loading product details'));
       } finally {
         setLoading(false);
       }
     };
 
     loadProductDetails();
-  }, [productName]);
+  }, [productName, t]);
+
+  // Helper functions for language-specific content
+  const getDescription = (product: ProductWithDetails) => {
+    return language === 'de' ? product.HTMLDescription_DE : product.HTMLDescription_EN;
+  };
+
+  const getSpecificationTitle = (spec: any) => {
+    return language === 'de' ? spec.Title_DE : spec.Title_EN;
+  };
+
+  const getSpecificationValue = (spec: any) => {
+    return language === 'de' ? spec.Value_DE : spec.Value_EN;
+  };
+
+  const getFeature = (feature: any) => {
+    return language === 'de' ? feature.Feature_DE : feature.Feature_EN;
+  };
+
+  const getAdvantage = (advantage: any) => {
+    return language === 'de' ? advantage.Advantage_DE : advantage.Advantage_EN;
+  };
+
+  const getInstallationInfo = (installation: any) => {
+    return language === 'de' ? installation.InstallationInfo_DE : installation.InstallationInfo_EN;
+  };
+
+  const getDatasheetName = (datasheet: any) => {
+    return language === 'de' ? datasheet.DatasheetName_DE : datasheet.DatasheetName_EN;
+  };
 
   const get3DModelUrl = (product: ProductWithDetails) => {
     if (product.Object3D_Url && !product.Object3D_Url.startsWith('http')) {
@@ -134,7 +165,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="loading-spinner w-12 h-12 mx-auto mb-6"></div>
-          <p className="text-lg text-gray-600">Lade Produktdetails...</p>
+          <p className="text-lg text-gray-600">{t('loadingProductDetails', 'Lade Produktdetails...', 'Loading product details...')}</p>
         </div>
       </div>
     );
@@ -149,7 +180,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             onClick={onBack}
             className="px-6 py-3 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
           >
-            {backButtonLabel}
+            {backButtonLabel || t('back', 'Zurück', 'Back')}
           </button>
         </div>
       </div>
@@ -172,7 +203,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 className="flex items-center px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
-                {backButtonLabel}
+                {backButtonLabel || t('backToCatalog', 'Zurück zum Katalog', 'Back to Catalog')}
               </button>
               
               <div>
@@ -196,7 +227,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  Datenblatt
+                  {t('datasheet', 'Datenblatt', 'Datasheet')}
                 </button>
               )}
               
@@ -206,7 +237,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   className="flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
                 >
                   <Target className="w-4 h-4" />
-                  Auf Messpunkt laden
+                  {t('loadToMeasurePoint', 'Auf Messpunkt laden', 'Load to Measure Point')}
                 </button>
               )}
             </div>
@@ -216,15 +247,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
       {/* Main Content */}
       <div className="container mx-auto px-6 py-6 max-w-none">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: 'calc(100vh - 120px)' }}>
           
           {/* 3D Model - Takes 2/3 of the screen */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <div className="h-[500px] lg:h-[650px] relative bg-gradient-to-br from-gray-50 to-gray-100">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full">
+              <div className="relative bg-gradient-to-br from-gray-50 to-gray-100" style={{ height: 'calc(100vh - 160px)' }}>
                 {modelUrl && !model3DError ? (
                   <Canvas 
-                    camera={{ position: [4, 4, 4], fov: 45 }}
+                    camera={{ position: [2, 2, 2], fov: 45 }}
                     className="w-full h-full"
                   >
                     <Suspense fallback={null}>
@@ -232,16 +263,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                       <ambientLight intensity={0.6} />
                       <directionalLight position={[10, 10, 5]} intensity={1.2} />
                       <pointLight position={[-10, -10, -5]} intensity={0.5} />
-                      <ContactShadows position={[0, -2, 0]} opacity={0.4} scale={20} blur={2} />
+                      <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={[30, 15]} blur={2} />
                       <Model3D url={modelUrl} productName={product.Name} />
                       <OrbitControls 
                         enablePan={true} 
                         enableZoom={true} 
                         enableRotate={true}
-                        autoRotate={true}
-                        autoRotateSpeed={0.8}
-                        minDistance={2}
-                        maxDistance={12}
+                        autoRotate={false}
+                        minDistance={1}
+                        maxDistance={8}
                         maxPolarAngle={Math.PI / 1.8}
                       />
                     </Suspense>
@@ -250,40 +280,11 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center text-gray-400">
                       <Package className="w-20 h-20 mx-auto mb-4" />
-                      <p className="text-xl font-semibold">3D-Modell nicht verfügbar</p>
-                      <p className="text-sm mt-2">Dieses Produkt hat kein 3D-Modell hinterlegt</p>
+                      <p className="text-xl font-semibold">{t('3dModelNotAvailable', '3D-Modell nicht verfügbar', '3D model not available')}</p>
+                      <p className="text-sm mt-2">{t('noModelAvailable', 'Dieses Produkt hat kein 3D-Modell hinterlegt', 'This product has no 3D model available')}</p>
                     </div>
                   </div>
                 )}
-                
-                {/* 3D Controls */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <div className="bg-black/80 backdrop-blur-md text-white rounded-lg p-3">
-                    <div className="flex items-center justify-between">
-                      <div className="grid grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs">🖱️</span>
-                          <span>Rotieren</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs">⚙️</span>
-                          <span>Zoomen</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center text-xs">🔄</span>
-                          <span>Verschieben</span>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={() => window.location.reload()}
-                        className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
-                        title="3D-Ansicht zurücksetzen"
-                      >
-                        <RotateCcw className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -295,7 +296,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
                 >
                   <Download className="w-4 h-4" />
-                  Datenblatt
+                  {t('datasheet', 'Datenblatt', 'Datasheet')}
                 </button>
               )}
               
@@ -305,7 +306,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
                 >
                   <Target className="w-4 h-4" />
-                  Auf Messpunkt laden
+                  {t('loadToMeasurePoint', 'Auf Messpunkt laden', 'Load to Measure Point')}
                 </button>
               )}
             </div>
@@ -319,10 +320,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               <div className="border-b border-gray-200 p-4">
                 <div className="flex flex-wrap gap-2">
                   {[
-                    { id: 'overview', label: 'Überblick', icon: Info },
-                    { id: 'specifications', label: 'Technische Daten', icon: Settings },
-                    { id: 'features', label: 'Features', icon: Zap },
-                    { id: 'installation', label: 'Installation', icon: FileText }
+                    { id: 'overview', label: t('overview', 'Überblick', 'Overview'), icon: Info },
+                    { id: 'specifications', label: t('technicalData', 'Technische Daten', 'Technical Data'), icon: Settings },
+                    { id: 'features', label: t('features', 'Features', 'Features'), icon: Zap },
+                    { id: 'installation', label: t('installation', 'Installation', 'Installation'), icon: FileText }
                   ].map((tab) => (
                     <button
                       key={tab.id}
@@ -345,23 +346,23 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 {activeTab === 'overview' && (
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Produktbeschreibung</h3>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">{t('productDescription', 'Produktbeschreibung', 'Product Description')}</h3>
                       <div 
                         className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
                         dangerouslySetInnerHTML={{ 
-                          __html: product.HTMLDescription_DE || product.HTMLDescription_EN || 'Keine Beschreibung verfügbar'
+                          __html: getDescription(product) || t('noDescriptionAvailable', 'Keine Beschreibung verfügbar', 'No description available')
                         }}
                       />
                     </div>
                     
                     {product.advantages.length > 0 && (
                       <div>
-                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Ihre Vorteile</h4>
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">{t('yourAdvantages', 'Ihre Vorteile', 'Your Advantages')}</h4>
                         <div className="space-y-3">
                           {product.advantages.map((advantage) => (
                             <div key={advantage.Id} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
                               <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{advantage.Advantage_DE || advantage.Advantage_EN}</span>
+                              <span className="text-sm text-gray-700">{getAdvantage(advantage)}</span>
                             </div>
                           ))}
                         </div>
@@ -372,16 +373,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'specifications' && (
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6">Technische Spezifikationen</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('technicalSpecifications', 'Technische Spezifikationen', 'Technical Specifications')}</h3>
                     {product.specifications.length > 0 ? (
                       <div className="space-y-4">
                         {product.specifications.map((spec) => (
                           <div key={spec.Id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                             <div className="font-medium text-gray-900 mb-2">
-                              {spec.Title_DE || spec.Title_EN}
+                              {getSpecificationTitle(spec)}
                             </div>
                             <div className="text-sikora-blue font-semibold">
-                              {spec.Value_DE || spec.Value_EN}
+                              {getSpecificationValue(spec)}
                             </div>
                           </div>
                         ))}
@@ -389,7 +390,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                     ) : (
                       <div className="text-center py-12 text-gray-500">
                         <Settings className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">Keine technischen Daten verfügbar</p>
+                        <p className="text-lg">{t('noTechnicalDataAvailable', 'Keine technischen Daten verfügbar', 'No technical data available')}</p>
                       </div>
                     )}
                   </div>
@@ -397,20 +398,20 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'features' && (
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6">Produktfeatures</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('productFeatures', 'Produktfeatures', 'Product Features')}</h3>
                     {product.features.length > 0 ? (
                       <div className="space-y-3">
                         {product.features.map((feature) => (
                           <div key={feature.Id} className="flex items-start gap-3 p-4 border border-blue-200 rounded-lg bg-blue-50">
                             <Zap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-gray-700">{feature.Feature_DE || feature.Feature_EN}</span>
+                            <span className="text-sm text-gray-700">{getFeature(feature)}</span>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <div className="text-center py-12 text-gray-500">
                         <Zap className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">Keine Features verfügbar</p>
+                        <p className="text-lg">{t('noFeaturesAvailable', 'Keine Features verfügbar', 'No features available')}</p>
                       </div>
                     )}
                   </div>
@@ -418,18 +419,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
                 {activeTab === 'installation' && (
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6">Installation & Setup</h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('installationAndSetup', 'Installation & Setup', 'Installation & Setup')}</h3>
                     {product.installation ? (
                       <div 
                         className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
                         dangerouslySetInnerHTML={{ 
-                          __html: product.installation.InstallationInfo_DE || product.installation.InstallationInfo_EN 
+                          __html: getInstallationInfo(product.installation)
                         }}
                       />
                     ) : (
                       <div className="text-center py-12 text-gray-500">
                         <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">Keine Setup-Informationen verfügbar</p>
+                        <p className="text-lg">{t('noSetupInfoAvailable', 'Keine Setup-Informationen verfügbar', 'No setup information available')}</p>
                       </div>
                     )}
                   </div>
@@ -445,9 +446,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
             <div className="p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Produkt auf Messpunkt laden</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">{t('loadProductToMeasurePoint', 'Produkt auf Messpunkt laden', 'Load Product to Measure Point')}</h3>
               <p className="text-gray-600 mb-6">
-                Wählen Sie einen Messpunkt aus, um <strong>{formatSikoraProductName(product.Name)}</strong> zu konfigurieren:
+                {t('selectMeasurePointToConfig', 'Wählen Sie einen Messpunkt aus, um', 'Select a measure point to configure')} <strong>{formatSikoraProductName(product.Name)}</strong> {t('toConfigure', 'zu konfigurieren', '')}:
               </p>
               
               <div className="space-y-3 mb-6">
@@ -474,14 +475,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   }}
                   className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                 >
-                  Abbrechen
+                  {t('cancel', 'Abbrechen', 'Cancel')}
                 </button>
                 <button
                   onClick={handleLoadToMeasurePoint}
                   disabled={!selectedMeasurePoint}
                   className="flex-1 px-4 py-3 text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
                 >
-                  Laden
+                  {t('load', 'Laden', 'Load')}
                 </button>
               </div>
             </div>

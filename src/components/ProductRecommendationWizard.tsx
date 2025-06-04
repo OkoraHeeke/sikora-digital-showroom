@@ -11,13 +11,13 @@ interface ProductRecommendation {
   productName: string;
   confidence: number;
   reasons: string[];
-  type: 'primary' | 'alternative' | 'complementary';
 }
 
 interface RecommendationResult {
-  primary: ProductRecommendation[];
-  alternatives: ProductRecommendation[];
-  complementary: ProductRecommendation[];
+  productName: string;
+  confidence: number;
+  reasons: string[];
+  alternatives: string[];
 }
 
 interface ProductRecommendationWizardProps {

@@ -183,7 +183,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   }
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden font-futura">
+    <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 flex-shrink-0 z-10 shadow-sm">
         <div className="w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
@@ -191,27 +191,27 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             <div className="flex items-center space-x-3 sm:space-x-4">
               <button
                 onClick={onBackToLineSelection}
-                className="flex items-center text-sikora-blue hover:text-sikora-cyan transition-colors font-futura"
+                className="flex items-center text-sikora-blue hover:text-sikora-cyan transition-colors"
               >
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                 {backButtonLabel || t('back', 'Zurück', 'Back')}
               </button>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-futura font-medium text-sikora-blue">
-                <span className="sikora-product-name">SIKORA</span> {t('productCatalog', 'Produktkatalog', 'Product Catalog')}
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue">
+                {t('sikoraProductCatalog', 'SIKORA Produktkatalog', 'SIKORA Product Catalog')}
               </h1>
             </div>
             <div className="flex items-center gap-3 sm:gap-4">
               {/* Produktempfehlungs-Button */}
               <button
                 onClick={() => setShowWizard(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white rounded-lg hover:from-sikora-cyan hover:to-sikora-blue transition-all duration-300 shadow-md hover:shadow-lg text-sm font-futura font-medium"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white rounded-lg hover:from-sikora-cyan hover:to-sikora-blue transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
               >
                 <Lightbulb className="w-4 h-4" />
                 <span className="hidden sm:inline">Produktempfehlung</span>
                 <span className="sm:hidden">Empfehlung</span>
               </button>
 
-              <div className="text-xs sm:text-sm text-gray-600 bg-gray-100 px-2 sm:px-3 py-1 rounded-full font-futura">
+              <div className="text-xs sm:text-sm text-gray-600 bg-gray-100 px-2 sm:px-3 py-1 rounded-full">
                 {filteredProducts.length} {t('of', 'von', 'of')} {products.length} {t('products', 'Produkten', 'products')}
               </div>
               {/* View Mode Toggle */}
@@ -357,9 +357,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
           ) : (
             Object.entries(groupedProducts).map(([series, seriesProducts]) => (
               <div key={series} className="mb-8 sm:mb-12">
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-futura font-medium text-sikora-blue mb-4 sm:mb-6 border-b border-gray-200 pb-2">
-                  <span className="sikora-product-name">{formatSikoraProductName(series)}</span> {t('series', 'Serie', 'Series')}
-                  <span className="ml-3 text-sm sm:text-base font-futura font-light text-gray-500">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue mb-4 sm:mb-6 border-b border-gray-200 pb-2">
+                  {formatSikoraProductName(series)} {t('series', 'Serie', 'Series')}
+                  <span className="ml-3 text-sm sm:text-base font-normal text-gray-500">
                     ({seriesProducts.length} {t('products', 'Produkte', 'Products')})
                   </span>
                 </h2>
@@ -390,7 +390,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                           }}
                         />
                         <div className="absolute top-2 right-2">
-                          <span className={`px-2 py-1 rounded text-xs font-futura font-medium ${getTechnologyColor(product.Name)}`}>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${getTechnologyColor(product.Name)}`}>
                             {getTechnologyFromProductName(product.Name) || series}
                           </span>
                         </div>
@@ -398,26 +398,26 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
                       {/* Product Info */}
                       <div className={`p-3 sm:p-4 ${viewMode === 'list' ? 'flex-1 flex flex-col' : ''}`}>
-                        <h3 className="font-futura font-medium text-sm sm:text-lg text-sikora-blue mb-2 sikora-product-name">
+                        <h3 className="font-bold text-sm sm:text-lg text-sikora-blue mb-2 sikora-product-name">
                           {formatSikoraProductName(product.Name)}
                         </h3>
 
                         <div
-                          className="text-xs sm:text-sm text-gray-600 line-clamp-3 mb-3 sm:mb-4 flex-1 font-futura font-light"
+                          className="text-xs sm:text-sm text-gray-600 line-clamp-3 mb-3 sm:mb-4 flex-1"
                           dangerouslySetInnerHTML={{
                             __html: getProductDescription(product) || ''
                           }}
                         />
 
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                          <div className="text-xs text-gray-500 font-futura font-light">
-                            <span className="sikora-product-name">SIKORA</span> Messtechnik
+                          <div className="text-xs text-gray-500">
+                            SIKORA Messtechnik
                           </div>
 
                           {/* Single Details Button */}
                           <button
                             onClick={() => onProductSelect?.(product.Name)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors font-futura font-medium"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors"
                           >
                             <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
                             {t('viewDetails', 'Details ansehen', 'View details')}

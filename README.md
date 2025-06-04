@@ -215,4 +215,57 @@ Bei Fragen oder Problemen wenden Sie sich bitte an das SIKORA-Entwicklungsteam.
 
 ---
 
-**SIKORA AG** - Technology To Perfection 
+**SIKORA AG** - Technology To Perfection
+
+## 🚀 Quick Deploy to Netlify
+
+### Option 1: Drag & Drop (Fastest)
+1. Run `npm run build`
+2. Drag the `dist` folder to [netlify.com/drop](https://app.netlify.com/drop)
+3. PWA installation will work automatically with HTTPS!
+
+### Option 2: Git Integration
+1. Push to GitHub repository
+2. Connect repository to Netlify
+3. Build settings are pre-configured in `netlify.toml`
+
+## 🛠 Development
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start database API (optional)
+npm run db:server
+```
+
+## 📱 PWA Features
+
+- ✅ **Offline Support** via Service Worker
+- ✅ **Install Button** (works on HTTPS/Netlify)
+- ✅ **App Icons** and splash screens
+- ✅ **Responsive Design** for mobile/tablet/desktop
+- ✅ **Modern Web App Manifest**
+
+## 🎯 Tech Stack
+
+- **React 18** + TypeScript
+- **Three.js** + React Three Fiber
+- **Tailwind CSS** for styling
+- **Vite** for bundling
+- **PWA** with Service Worker
+- **SQLite** database (optional)
+
+## 🌐 Live Demo
+
+Deploy to Netlify for full PWA experience with HTTPS.
+
+---
+
+**SIKORA GmbH** - Leading measurement technology for cable, pipe & optical fiber production. 

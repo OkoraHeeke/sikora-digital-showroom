@@ -24,7 +24,7 @@ const LineSelection: React.FC<LineSelectionProps> = ({ onLineSelect }) => {
     },
     {
       id: 'fiber',
-      name: 'Glasfaserlinie',
+      name: 'Glasfaserlinie', 
       description: 'Verfügbar in der vollständigen Version mit FIBER Technologie (derzeit nicht geladen)',
       image: '/api/placeholder/400/250',
       color: 'sikora-plastic-green',
@@ -41,7 +41,7 @@ const LineSelection: React.FC<LineSelectionProps> = ({ onLineSelect }) => {
             SIKORA Digital Showroom
           </h2>
           <p className="text-sm sm:text-base lg:text-lg xl:text-xl text-gray-600 max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto leading-relaxed px-4">
-            Entdecken Sie die umfassende SIKORA Produktpalette für die Kabel-, Rohr- und Glasfaserproduktion.
+            Entdecken Sie die umfassende SIKORA Produktpalette für die Kabel-, Rohr- und Glasfaserproduktion. 
             Wählen Sie eine Produktionslinie aus, um mit der interaktiven Konfiguration zu beginnen.
           </p>
         </div>
@@ -50,13 +50,13 @@ const LineSelection: React.FC<LineSelectionProps> = ({ onLineSelect }) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-none">
           {lineTypes.map((lineType) => {
             const isAvailable = lineType.id === 'cable';
-
+            
             return (
               <div
                 key={lineType.id}
                 className={`bg-white rounded-lg shadow-lg overflow-hidden transition-all duration-300 transform ${
-                  isAvailable
-                    ? 'hover:shadow-xl hover:-translate-y-1 cursor-pointer group'
+                  isAvailable 
+                    ? 'hover:shadow-xl hover:-translate-y-1 cursor-pointer group' 
                     : 'opacity-60 cursor-not-allowed'
                 }`}
                 onClick={() => isAvailable && onLineSelect(lineType.id)}
@@ -77,7 +77,7 @@ const LineSelection: React.FC<LineSelectionProps> = ({ onLineSelect }) => {
                   <div className={`absolute inset-0 bg-gradient-to-t from-black/20 to-transparent transition-opacity duration-300 ${
                     isAvailable ? 'opacity-0 group-hover:opacity-100' : 'opacity-30'
                   }`} />
-
+                  
                   {/* Verfügbarkeits-Badge - Responsive */}
                   <div className={`absolute top-3 sm:top-4 right-3 sm:right-4 px-2 sm:px-3 py-1 rounded-full text-xs font-bold ${
                     isAvailable
@@ -88,30 +88,30 @@ const LineSelection: React.FC<LineSelectionProps> = ({ onLineSelect }) => {
                   </div>
                 </div>
 
-                {/* Inhalt - CP Design konform */}
+                {/* Inhalt - Responsive Padding und Text */}
                 <div className="p-4 sm:p-6">
-                  <h3 className={`text-lg sm:text-xl lg:text-2xl font-futura font-medium mb-2 sm:mb-3 transition-colors duration-200 ${
-                    isAvailable
-                      ? 'text-sikora-blue group-hover:text-sikora-cyan'
+                  <h3 className={`text-lg sm:text-xl lg:text-2xl font-bold mb-2 sm:mb-3 transition-colors duration-200 ${
+                    isAvailable 
+                      ? 'text-sikora-blue group-hover:text-sikora-cyan' 
                       : 'text-gray-500'
                   }`}>
                     {lineType.name}
                   </h3>
-                  <p className="text-gray-600 text-xs sm:text-sm lg:text-base leading-relaxed font-futura font-light">
+                  <p className="text-gray-600 text-xs sm:text-sm lg:text-base leading-relaxed">
                     {lineType.description}
                   </p>
 
                   {/* Produktanzahl für verfügbare Linie */}
                   {isAvailable && (
-                    <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-sikora-blue bg-blue-50 px-2 sm:px-3 py-2 rounded-lg font-futura">
-                      <strong className="sikora-product-name">60+ SIKORA Produkte</strong> • 4 Messpunkte • Vollständige 3D-Visualisierung
+                    <div className="mt-3 sm:mt-4 text-xs sm:text-sm text-sikora-blue bg-blue-50 px-2 sm:px-3 py-2 rounded-lg">
+                      <strong>60+ SIKORA Produkte</strong> • 4 Messpunkte • Vollständige 3D-Visualisierung
                     </div>
                   )}
 
                   {/* Aktions-Bereich */}
                   <div className="mt-4 sm:mt-6 flex justify-end">
                     <button
-                      className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-futura font-medium rounded-md transition-all duration-200 ${
+                      className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-md transition-all duration-200 ${
                         isAvailable
                           ? 'bg-sikora-blue text-white hover:bg-sikora-cyan group-hover:scale-105 transform'
                           : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -144,7 +144,7 @@ const LineSelection: React.FC<LineSelectionProps> = ({ onLineSelect }) => {
             <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-sikora-blue mb-4 sm:mb-6 text-center">
               Verfügbare SIKORA Technologien
             </h3>
-
+            
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 lg:gap-6 text-center">
               <div className="p-3 sm:p-4 bg-blue-50 rounded-lg">
                 <div className="text-lg sm:text-xl lg:text-2xl font-bold text-sikora-blue mb-1 sm:mb-2">X-RAY</div>
@@ -177,4 +177,4 @@ const LineSelection: React.FC<LineSelectionProps> = ({ onLineSelect }) => {
   );
 };
 
-export default LineSelection;
+export default LineSelection; 

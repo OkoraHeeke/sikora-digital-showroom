@@ -25,7 +25,7 @@ interface LanguageProviderProps {
 export const LanguageProvider: React.FC<LanguageProviderProps> = ({ children }) => {
   const [language, setLanguage] = useState<Language>('de');
 
-  const t = (key: string, deText: string, enText: string): string => {
+  const t = (_key: string, deText: string, enText: string): string => {
     return language === 'de' ? deText : enText;
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import LineSelection from './components/LineSelection';
 import ConfigurationSidebar from './components/ConfigurationSidebar';
@@ -207,7 +207,7 @@ function App() {
   const handleLoadToMeasurePoint = useCallback((productName: string, measurePointId?: string) => {
     // If measurePointId is provided, use it, otherwise use current selected measure point
     const targetMeasurePoint = measurePointId || state.selectedMeasurePoint;
-
+    
     if (targetMeasurePoint) {
       setState(prev => ({
         ...prev,
@@ -218,10 +218,10 @@ function App() {
         selectedProduct: productName,
         selectedMeasurePoint: targetMeasurePoint
       }));
-
+      
       // Load product details
       loadProductDetails(productName);
-
+      
       // Always go back to configuration view after loading to measure point
       setCurrentView('configuration');
       setPreviousView('configuration');
@@ -257,7 +257,7 @@ function App() {
   const handleMeasurePointClick = useCallback((measurePointId: string) => {
     // Check if this measure point has an assigned product
     const assignedProduct = state.configuration[measurePointId];
-
+    
     if (assignedProduct) {
       // If product is assigned, show product details in sidebar
       updateState({ selectedMeasurePoint: measurePointId });
@@ -335,7 +335,7 @@ function App() {
   // Main render
   return (
     <LanguageProvider>
-      <div className="h-screen flex flex-col bg-gray-50 font-sikora">
+      <div className="h-screen flex flex-col bg-gray-50">
         {/* Header */}
         {currentView !== 'admin' && (
           <Header
@@ -346,9 +346,9 @@ function App() {
 
         {/* Database Connection Status */}
         {!databaseConnected && currentView !== 'admin' && (
-          <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-yellow-800 text-sm font-sikora">
+          <div className="bg-yellow-100 border-b border-yellow-200 px-4 py-2 text-yellow-800 text-sm">
             ⚠️ Datenbank nicht verbunden - verwende Fallback-Daten.
-            Starten Sie den API-Server mit: <code className="bg-yellow-200 px-1 rounded font-sikora">npm run db:server</code>
+            Starten Sie den API-Server mit: <code className="bg-yellow-200 px-1 rounded">npm run db:server</code>
           </div>
         )}
 
@@ -384,8 +384,8 @@ function App() {
               onBackToLineSelection={handleBackFromProductCatalog}
               onProductSelect={handleProductCatalogSelect}
               backButtonLabel={
-                previousView === 'configuration'
-                  ? "Zurück zur Szene"
+                previousView === 'configuration' 
+                  ? "Zurück zur Szene" 
                   : "Zurück zur Startseite"
               }
               selectedMeasurePoint={previousView === 'configuration' ? selectedMeasurePointData : null}
