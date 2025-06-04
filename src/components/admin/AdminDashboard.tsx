@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  Package, 
-  MapPin, 
-  Layers, 
-  Tags, 
+import {
+  BarChart3,
+  Package,
+  MapPin,
+  Layers,
+  Tags,
   Ruler,
   TrendingUp,
   Activity,
@@ -40,7 +40,7 @@ const AdminDashboard: React.FC = () => {
     const loadStats = async () => {
       try {
         setLoading(true);
-        
+
         // Parallel laden aller Statistiken
         const [scenesRes, measurePointsRes, productsRes, categoriesRes, parametersRes] = await Promise.all([
           fetch('/api/scenes'),
@@ -72,7 +72,7 @@ const AdminDashboard: React.FC = () => {
           { id: 3, type: 'scene', action: 'modified', name: 'Draht & Kabel CV Linie', time: '1 Tag' },
           { id: 4, type: 'product', action: 'updated', name: 'X-RAY 6000 PRO', time: '2 Tage' }
         ]);
-        
+
       } catch (error) {
         console.error('Failed to load dashboard stats:', error);
       } finally {
@@ -156,67 +156,67 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="w-full h-full space-y-8 p-8 overflow-y-auto">
       {/* Welcome Header */}
-      <div className="bg-gradient-to-r from-sikora-blue to-sikora-cyan rounded-lg p-6 text-white">
-        <h2 className="text-2xl font-bold mb-2">
+      <div className="bg-gradient-to-r from-sikora-blue to-sikora-cyan rounded-xl p-8 text-white shadow-lg">
+        <h2 className="text-3xl font-bold mb-3">
           {t('welcomeAdmin', 'Willkommen im Admin-Bereich', 'Welcome to Admin Area')}
         </h2>
-        <p className="text-blue-100">
-          {t('adminWelcomeText', 
+        <p className="text-blue-100 text-lg">
+          {t('adminWelcomeText',
             'Verwalten Sie alle Inhalte und Funktionen des SIKORA Digital Showrooms',
             'Manage all content and functions of the SIKORA Digital Showroom'
           )}
         </p>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* Statistics Cards - Use full width on large screens */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6 gap-6">
         {statCards.map((card, index) => {
           const IconComponent = card.icon;
           return (
-            <div key={index} className="bg-white rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow">
-              <div className="flex items-center justify-between mb-3">
-                <div className={`p-2 rounded-lg bg-${card.color}-100`}>
-                  <IconComponent className={`w-5 h-5 text-${card.color}-600`} />
+            <div key={index} className="bg-white rounded-lg p-6 border border-gray-200 hover:shadow-lg transition-all duration-200">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-3 rounded-xl bg-${card.color}-100`}>
+                  <IconComponent className={`w-6 h-6 text-${card.color}-600`} />
                 </div>
-                <span className={`text-xs font-medium px-2 py-1 rounded-full bg-green-100 text-green-600`}>
+                <span className={`text-xs font-medium px-3 py-1 rounded-full bg-green-100 text-green-600`}>
                   {card.change}
                 </span>
               </div>
-              <div className="space-y-1">
-                <p className="text-2xl font-bold text-gray-900">{card.value}</p>
-                <p className="text-sm text-gray-600">{card.title}</p>
+              <div className="space-y-2">
+                <p className="text-3xl font-bold text-gray-900">{card.value}</p>
+                <p className="text-sm text-gray-600 font-medium">{card.title}</p>
               </div>
             </div>
           );
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
         {/* Recent Activity */}
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gray-900">
               {t('recentActivity', 'Letzte Aktivitäten', 'Recent Activity')}
             </h3>
-            <Activity className="w-5 h-5 text-gray-400" />
+            <Activity className="w-6 h-6 text-gray-400" />
           </div>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {recentActivity.map((activity) => {
               const IconComponent = getActivityIcon(activity.type);
               return (
-                <div key={activity.id} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg">
-                  <div className={`p-2 rounded-lg ${getActivityColor(activity.action)}`}>
-                    <IconComponent className="w-4 h-4" />
+                <div key={activity.id} className="flex items-center space-x-4 p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                  <div className={`p-3 rounded-xl ${getActivityColor(activity.action)}`}>
+                    <IconComponent className="w-5 h-5" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {activity.name}
                     </p>
-                    <p className="text-xs text-gray-500">
-                      {activity.action === 'created' ? 'Erstellt' : 
-                       activity.action === 'updated' ? 'Aktualisiert' : 
+                    <p className="text-sm text-gray-500">
+                      {activity.action === 'created' ? 'Erstellt' :
+                       activity.action === 'updated' ? 'Aktualisiert' :
                        activity.action === 'deleted' ? 'Gelöscht' : activity.action} vor {activity.time}
                     </p>
                   </div>
@@ -227,63 +227,63 @@ const AdminDashboard: React.FC = () => {
         </div>
 
         {/* Quick Actions */}
-        <div className="bg-white rounded-lg p-6 border border-gray-200">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-gray-900">
               {t('quickActions', 'Schnellaktionen', 'Quick Actions')}
             </h3>
-            <TrendingUp className="w-5 h-5 text-gray-400" />
+            <TrendingUp className="w-6 h-6 text-gray-400" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <button className="p-4 text-left hover:bg-blue-50 border border-gray-200 rounded-lg transition-colors">
-              <Package className="w-6 h-6 text-blue-600 mb-2" />
-              <p className="font-medium text-gray-900">Neues Produkt</p>
-              <p className="text-xs text-gray-500">Produkt hinzufügen</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <button className="p-6 text-left hover:bg-blue-50 border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:shadow-sm">
+              <Package className="w-8 h-8 text-blue-600 mb-3" />
+              <p className="font-semibold text-gray-900 mb-1">Neues Produkt</p>
+              <p className="text-sm text-gray-500">Produkt hinzufügen</p>
             </button>
-            <button className="p-4 text-left hover:bg-green-50 border border-gray-200 rounded-lg transition-colors">
-              <MapPin className="w-6 h-6 text-green-600 mb-2" />
-              <p className="font-medium text-gray-900">Messpunkt</p>
-              <p className="text-xs text-gray-500">Position erstellen</p>
+            <button className="p-6 text-left hover:bg-green-50 border border-gray-200 rounded-xl transition-all hover:border-green-300 hover:shadow-sm">
+              <MapPin className="w-8 h-8 text-green-600 mb-3" />
+              <p className="font-semibold text-gray-900 mb-1">Messpunkt</p>
+              <p className="text-sm text-gray-500">Position erstellen</p>
             </button>
-            <button className="p-4 text-left hover:bg-purple-50 border border-gray-200 rounded-lg transition-colors">
-              <Layers className="w-6 h-6 text-purple-600 mb-2" />
-              <p className="font-medium text-gray-900">Neue Szene</p>
-              <p className="text-xs text-gray-500">Linie hinzufügen</p>
+            <button className="p-6 text-left hover:bg-purple-50 border border-gray-200 rounded-xl transition-all hover:border-purple-300 hover:shadow-sm">
+              <Layers className="w-8 h-8 text-purple-600 mb-3" />
+              <p className="font-semibold text-gray-900 mb-1">Neue Szene</p>
+              <p className="text-sm text-gray-500">Linie hinzufügen</p>
             </button>
-            <button className="p-4 text-left hover:bg-orange-50 border border-gray-200 rounded-lg transition-colors">
-              <Database className="w-6 h-6 text-orange-600 mb-2" />
-              <p className="font-medium text-gray-900">Backup</p>
-              <p className="text-xs text-gray-500">Daten sichern</p>
+            <button className="p-6 text-left hover:bg-orange-50 border border-gray-200 rounded-xl transition-all hover:border-orange-300 hover:shadow-sm">
+              <Database className="w-8 h-8 text-orange-600 mb-3" />
+              <p className="font-semibold text-gray-900 mb-1">Backup</p>
+              <p className="text-sm text-gray-500">Daten sichern</p>
             </button>
           </div>
         </div>
       </div>
 
       {/* System Status */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white rounded-xl p-8 border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-gray-900">
             {t('systemStatus', 'Systemstatus', 'System Status')}
           </h3>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span className="text-sm text-green-600 font-medium">Online</span>
+          <div className="flex items-center space-x-3">
+            <div className="w-3 h-3 bg-green-400 rounded-full"></div>
+            <span className="text-sm text-green-600 font-semibold">Online</span>
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <Database className="w-8 h-8 text-green-600 mx-auto mb-2" />
-            <p className="font-semibold text-green-700">Datenbank</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="text-center p-6 bg-green-50 rounded-xl border border-green-100">
+            <Database className="w-10 h-10 text-green-600 mx-auto mb-3" />
+            <p className="font-semibold text-green-700 text-lg">Datenbank</p>
             <p className="text-sm text-green-600">Verbunden</p>
           </div>
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <BarChart3 className="w-8 h-8 text-blue-600 mx-auto mb-2" />
-            <p className="font-semibold text-blue-700">API</p>
+          <div className="text-center p-6 bg-blue-50 rounded-xl border border-blue-100">
+            <BarChart3 className="w-10 h-10 text-blue-600 mx-auto mb-3" />
+            <p className="font-semibold text-blue-700 text-lg">API</p>
             <p className="text-sm text-blue-600">Läuft</p>
           </div>
-          <div className="text-center p-4 bg-orange-50 rounded-lg">
-            <AlertCircle className="w-8 h-8 text-orange-600 mx-auto mb-2" />
-            <p className="font-semibold text-orange-700">Speicher</p>
+          <div className="text-center p-6 bg-orange-50 rounded-xl border border-orange-100">
+            <AlertCircle className="w-10 h-10 text-orange-600 mx-auto mb-3" />
+            <p className="font-semibold text-orange-700 text-lg">Speicher</p>
             <p className="text-sm text-orange-600">75% belegt</p>
           </div>
         </div>
@@ -292,4 +292,4 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;

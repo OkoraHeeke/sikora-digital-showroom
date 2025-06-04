@@ -91,7 +91,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
   ];
 
   return (
-    <div className="h-screen bg-gray-50 flex">
+    <div className="fixed inset-0 bg-gray-50 flex z-50">
       {/* Sidebar */}
       <div className={`bg-white border-r border-gray-200 transition-all duration-300 ${
         sidebarCollapsed ? 'w-16' : 'w-64'
@@ -198,7 +198,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({
         </div>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto bg-gray-50">
           {children}
         </div>
       </div>
