@@ -6,6 +6,7 @@ import Scene3D from './components/Scene3D';
 import DetailsPanel from './components/DetailsPanel';
 import ProductCatalog from './components/ProductCatalog';
 import ProductDetail from './components/ProductDetail';
+import ProductRecommendationWizard from './components/ProductRecommendationWizard';
 import AdminLayout from './components/AdminLayout';
 import AdminDashboard from './components/admin/AdminDashboard';
 import ProductManagement from './components/admin/ProductManagement';
@@ -59,6 +60,7 @@ function App() {
   const [databaseConnected, setDatabaseConnected] = useState<boolean>(false);
   const [adminSection, setAdminSection] = useState<string>('dashboard');
   const [showDimensions, setShowDimensions] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
 
   // Helper function to update state
   const updateState = useCallback((updates: Partial<ConfiguratorState>) => {
@@ -321,6 +323,11 @@ function App() {
     setCurrentView('productCatalog');
   }, []);
 
+  // Handler for showing wizard from header
+  const handleShowWizard = useCallback(() => {
+    setShowWizard(true);
+  }, []);
+
   // Get selected measure point data
   const selectedMeasurePointData = state.selectedMeasurePoint
     ? state.measurePoints.find(mp => mp.Id.toString() === state.selectedMeasurePoint) || null
@@ -362,6 +369,7 @@ function App() {
             showMeasurePointInfo={currentView === 'productCatalog' && !!selectedMeasurePointData}
             filteredProductsCount={currentView === 'productCatalog' ? state.products.length : undefined}
             totalProductsCount={currentView === 'productCatalog' ? state.products.length : undefined}
+            onShowWizard={currentView === 'productCatalog' ? handleShowWizard : undefined}
             productName={currentView === 'productDetail' ? selectedProductName : undefined}
             productTechnology={currentView === 'productDetail' && selectedProductDetails ?
               selectedProductDetails.Name.split(' ')[0] : undefined}
@@ -427,6 +435,22 @@ function App() {
               selectedMeasurePoint={previousView === 'configuration' ? selectedMeasurePointData : null}
               showMeasurePointInfo={previousView === 'configuration'}
             />
+          )}
+
+          {/* Product Recommendation Wizard Modal */}
+          {showWizard && (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto">
+                <ProductRecommendationWizard
+                  isOpen={showWizard}
+                  onClose={() => setShowWizard(false)}
+                  onProductSelect={(productName) => {
+                    setShowWizard(false);
+                    handleProductCatalogSelect(productName);
+                  }}
+                />
+              </div>
+            </div>
           )}
 
           {currentView === 'productDetail' && (

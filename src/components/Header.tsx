@@ -113,8 +113,18 @@ const Header: React.FC<HeaderProps> = ({
             {/* Logo and Title */}
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <div className="flex items-center flex-shrink-0">
-                <div className="w-8 h-8 bg-sikora-blue rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-sm">S</span>
+                <div className="h-10 flex items-center">
+                  <img
+                    src="/assets/logo.svg"
+                    alt="SIKORA"
+                    className="h-8 w-auto"
+                    style={{
+                      filter: (currentView === 'productDetail' || currentView === 'productCatalog') &&
+                              (productTechnology || showMeasurePointInfo)
+                        ? 'brightness(0) invert(1)'
+                        : 'none'
+                    }}
+                  />
                 </div>
               </div>
 
@@ -215,8 +225,8 @@ const Header: React.FC<HeaderProps> = ({
                     onClick={onToggleDimensions}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium border-2 ${
                       showDimensions
-                        ? 'bg-yellow-500 text-white border-yellow-500 shadow-lg'
-                        : 'bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 border-white/30'
+                        ? 'bg-sikora-cyan text-white border-sikora-cyan shadow-lg'
+                        : 'bg-white text-sikora-blue hover:bg-sikora-cyan hover:text-white border-white hover:border-sikora-cyan'
                     }`}
                   >
                     <Ruler className="w-4 h-4" />
@@ -237,7 +247,7 @@ const Header: React.FC<HeaderProps> = ({
                 {canLoadToMeasurePoint && onLoadToMeasurePoint && (
                   <button
                     onClick={onLoadToMeasurePoint}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-md"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors text-sm font-medium shadow-md"
                   >
                     <Target className="w-4 h-4" />
                     <span className="hidden sm:inline">{t('loadToMeasurePoint', 'Auf Messpunkt laden', 'Load to Measure Point')}</span>
@@ -250,7 +260,7 @@ const Header: React.FC<HeaderProps> = ({
             {showInstallButton && (
               <button
                 onClick={handleInstallClick}
-                className="flex items-center gap-1 px-2 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                className="flex items-center gap-1 px-2 py-1.5 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors text-sm font-medium"
               >
                 <Download className="w-4 h-4" />
                 <span className="hidden lg:inline">{t('installApp', 'App installieren', 'Install App')}</span>
