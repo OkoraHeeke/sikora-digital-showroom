@@ -238,86 +238,6 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 flex-shrink-0 z-10 shadow-sm">
-        <div className="w-full px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
-            <div className="flex items-center space-x-3 sm:space-x-4">
-              <button
-                onClick={onBackToLineSelection}
-                className="flex items-center text-sikora-blue hover:text-sikora-cyan transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                {backButtonLabel || t('back', 'Zurück', 'Back')}
-              </button>
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-sikora-blue">
-                {t('sikoraProductCatalog', 'SIKORA Produktkatalog', 'SIKORA Product Catalog')}
-              </h1>
-            </div>
-            <div className="flex items-center gap-3 sm:gap-4">
-              {/* Produktempfehlungs-Button */}
-              <button
-                onClick={() => setShowWizard(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white rounded-lg hover:from-sikora-cyan hover:to-sikora-blue transition-all duration-300 shadow-md hover:shadow-lg text-sm font-medium"
-              >
-                <Lightbulb className="w-4 h-4" />
-                <span className="hidden sm:inline">Produktempfehlung</span>
-                <span className="sm:hidden">Empfehlung</span>
-              </button>
-
-              <div className="text-xs sm:text-sm text-gray-600 bg-gray-100 px-2 sm:px-3 py-1 rounded-full">
-                {filteredProducts.length} {t('of', 'von', 'of')} {products.length} {t('products', 'Produkten', 'products')}
-              </div>
-              {/* View Mode Toggle */}
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-1.5 sm:p-2 rounded-md transition-colors ${
-                    viewMode === 'grid' ? 'bg-white text-sikora-blue shadow-sm' : 'text-gray-600'
-                  }`}
-                >
-                  <Grid className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-1.5 sm:p-2 rounded-md transition-colors ${
-                    viewMode === 'list' ? 'bg-white text-sikora-blue shadow-sm' : 'text-gray-600'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Selected Measure Point Info */}
-      {showMeasurePointInfo && selectedMeasurePoint && (
-        <div className="bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white flex-shrink-0">
-          <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                <span className="font-medium">{t('selectedMeasurePoint', 'Ausgewählter Messpunkt', 'Selected Measure Point')}:</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold">
-                  {selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || `${t('measurePoint', 'Messpunkt', 'Measure Point')} ${selectedMeasurePoint.Id}`}
-                </h3>
-                {/* Description */}
-                <p className="text-sm text-gray-600 mb-4">
-                  {t('selectSuitableDevice', 'Dieser Messpunkt ist ausgewählt. Wählen Sie ein passendes Messgerät aus dem Katalog unten.', 'This measure point is selected. Choose a suitable measuring device from the catalog below.')}
-                </p>
-              </div>
-              <div className="hidden sm:flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-lg px-3 py-2">
-                <Info className="w-4 h-4" />
-                <span className="text-sm">{t('productsForMeasurePoint', 'Produkte für diesen Messpunkt', 'Products for this measure point')}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Enhanced Search and Filter Bar */}
       <div className="bg-white border-b border-gray-200 flex-shrink-0">
@@ -470,22 +390,12 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
 
                           {/* Action Buttons */}
                           <div className="flex gap-2">
-                            {/* Dimensions Button */}
-                            <button
-                              onClick={() => handleShowDimensions(product)}
-                              className="flex items-center gap-1 px-2 py-1.5 text-xs sm:text-sm text-sikora-blue bg-sikora-blue/10 border border-sikora-blue/20 rounded-md hover:bg-sikora-blue/20 transition-colors"
-                              title={t('showDimensions', 'Abmessungen anzeigen', 'Show dimensions')}
-                            >
-                              <Ruler className="w-3 h-3 sm:w-4 sm:h-4" />
-                              <span className="hidden sm:inline">{t('dimensions', 'Maße', 'Dims')}</span>
-                            </button>
-
                             {/* Details Button */}
                             <button
                               onClick={() => onProductSelect?.(product.Name)}
-                              className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors"
+                              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm text-white bg-sikora-blue rounded-lg hover:bg-sikora-cyan transition-all duration-200 font-medium shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
                             >
-                              <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <ExternalLink className="w-4 h-4" />
                               {t('viewDetails', 'Details ansehen', 'View details')}
                             </button>
                           </div>
@@ -554,7 +464,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                       <pointLight position={[-10, -10, -5]} intensity={0.5} />
                       <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={[30, 15]} blur={2} />
                       <Model3D
-                        url={get3DModelUrl(selectedProductForDimensions)}
+                        url={get3DModelUrl(selectedProductForDimensions) || ''}
                         productName={selectedProductForDimensions.Name}
                         onObjectLoad={handleModelLoad}
                       />

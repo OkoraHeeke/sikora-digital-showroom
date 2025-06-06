@@ -58,6 +58,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [databaseConnected, setDatabaseConnected] = useState<boolean>(false);
   const [adminSection, setAdminSection] = useState<string>('dashboard');
+  const [showDimensions, setShowDimensions] = useState(false);
 
   // Helper function to update state
   const updateState = useCallback((updates: Partial<ConfiguratorState>) => {
@@ -207,7 +208,7 @@ function App() {
   const handleLoadToMeasurePoint = useCallback((productName: string, measurePointId?: string) => {
     // If measurePointId is provided, use it, otherwise use current selected measure point
     const targetMeasurePoint = measurePointId || state.selectedMeasurePoint;
-    
+
     if (targetMeasurePoint) {
       setState(prev => ({
         ...prev,
@@ -218,10 +219,10 @@ function App() {
         selectedProduct: productName,
         selectedMeasurePoint: targetMeasurePoint
       }));
-      
+
       // Load product details
       loadProductDetails(productName);
-      
+
       // Always go back to configuration view after loading to measure point
       setCurrentView('configuration');
       setPreviousView('configuration');
@@ -229,7 +230,8 @@ function App() {
   }, [state.selectedMeasurePoint, loadProductDetails]);
 
   const handleMeasurePointSelect = useCallback((measurePointId: string) => {
-    // Show measure point details in sidebar
+    // Show measure point details in sidebar AND trigger camera movement
+    // The Scene3D component will automatically move the camera when selectedMeasurePoint changes
     updateState({
       selectedMeasurePoint: measurePointId,
       selectedProduct: null
@@ -257,7 +259,7 @@ function App() {
   const handleMeasurePointClick = useCallback((measurePointId: string) => {
     // Check if this measure point has an assigned product
     const assignedProduct = state.configuration[measurePointId];
-    
+
     if (assignedProduct) {
       // If product is assigned, show product details in sidebar
       updateState({ selectedMeasurePoint: measurePointId });
@@ -303,6 +305,16 @@ function App() {
     setAdminSection(section);
   }, []);
 
+  // Handlers for ProductDetail header actions
+  const handleToggleDimensions = useCallback(() => {
+    setShowDimensions(prev => !prev);
+  }, []);
+
+  const handleLoadToMeasurePointDialog = useCallback(() => {
+    // This would open a dialog to select measure point
+    console.log('Load to measure point dialog would open here');
+  }, []);
+
   // New handler for catalog from sidebar
   const handleGoToCatalogFromSidebar = useCallback(() => {
     setPreviousView('configuration');
@@ -339,8 +351,32 @@ function App() {
         {/* Header */}
         {currentView !== 'admin' && (
           <Header
+            currentView={currentView}
             onShowProductCatalog={handleShowProductCatalog}
             onShowAdmin={handleShowAdmin}
+            onBack={currentView === 'productCatalog' ? handleBackFromProductCatalog :
+                   currentView === 'productDetail' ? handleBackFromProductDetail : undefined}
+            backButtonLabel={currentView === 'productCatalog' ? (previousView === 'configuration' ? 'Zurück zur Szene' : 'Zurück') :
+                            currentView === 'productDetail' ? 'Zurück zum Katalog' : undefined}
+            selectedMeasurePoint={currentView === 'productCatalog' ? selectedMeasurePointData : undefined}
+            showMeasurePointInfo={currentView === 'productCatalog' && !!selectedMeasurePointData}
+            filteredProductsCount={currentView === 'productCatalog' ? state.products.length : undefined}
+            totalProductsCount={currentView === 'productCatalog' ? state.products.length : undefined}
+            productName={currentView === 'productDetail' ? selectedProductName : undefined}
+            productTechnology={currentView === 'productDetail' && selectedProductDetails ?
+              selectedProductDetails.Name.split(' ')[0] : undefined}
+            onDatasheetDownload={currentView === 'productDetail' && selectedProductDetails?.datasheet ?
+              () => {
+                const url = selectedProductDetails.datasheet?.FileUrl?.replace(/^public\//, '/api/assets/') ||
+                           `/api/assets/datasheets/${selectedProductDetails.datasheet}`;
+                window.open(url, '_blank');
+              } : undefined}
+            onLoadToMeasurePoint={currentView === 'productDetail' && availableMeasurePoints.length > 0 ?
+              handleLoadToMeasurePointDialog : undefined}
+            onToggleDimensions={currentView === 'productDetail' ? handleToggleDimensions : undefined}
+            showDimensions={currentView === 'productDetail' ? showDimensions : undefined}
+            hasDatasheet={currentView === 'productDetail' && !!selectedProductDetails?.datasheet}
+            canLoadToMeasurePoint={currentView === 'productDetail' && availableMeasurePoints.length > 0}
           />
         )}
 
@@ -384,8 +420,8 @@ function App() {
               onBackToLineSelection={handleBackFromProductCatalog}
               onProductSelect={handleProductCatalogSelect}
               backButtonLabel={
-                previousView === 'configuration' 
-                  ? "Zurück zur Szene" 
+                previousView === 'configuration'
+                  ? "Zurück zur Szene"
                   : "Zurück zur Startseite"
               }
               selectedMeasurePoint={previousView === 'configuration' ? selectedMeasurePointData : null}
@@ -401,6 +437,8 @@ function App() {
               onLoadToMeasurePoint={handleLoadToMeasurePoint}
               availableMeasurePoints={availableMeasurePoints}
               backButtonLabel="Zurück zum Katalog"
+              showDimensions={showDimensions}
+              onToggleDimensions={handleToggleDimensions}
             />
           )}
 

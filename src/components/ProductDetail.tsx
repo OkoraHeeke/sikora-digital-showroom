@@ -14,6 +14,9 @@ interface ProductDetailProps {
   onLoadToMeasurePoint?: (productName: string, measurePointId?: string) => void;
   availableMeasurePoints?: Array<{ id: string; name: string }>;
   backButtonLabel?: string;
+  // New props for header integration
+  showDimensions?: boolean;
+  onToggleDimensions?: () => void;
 }
 
 interface Model3DProps {
@@ -48,7 +51,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   onBack,
   onLoadToMeasurePoint,
   availableMeasurePoints = [],
-  backButtonLabel
+  backButtonLabel,
+  showDimensions: externalShowDimensions,
+  onToggleDimensions
 }) => {
   const { t, language } = useLanguage();
   const [product, setProduct] = useState<ProductWithDetails | null>(null);
@@ -58,8 +63,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [model3DError, setModel3DError] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [selectedMeasurePoint, setSelectedMeasurePoint] = useState<string>('');
-  const [showDimensions, setShowDimensions] = useState(false);
+  const [localShowDimensions, setLocalShowDimensions] = useState(false);
   const [loadedModel, setLoadedModel] = useState<THREE.Object3D | null>(null);
+
+  // Use external dimensions state if provided, otherwise use local state
+  const showDimensions = externalShowDimensions !== undefined ? externalShowDimensions : localShowDimensions;
+  const toggleDimensions = onToggleDimensions || (() => setLocalShowDimensions(prev => !prev));
 
   useEffect(() => {
     const loadProductDetails = async () => {
@@ -210,76 +219,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Kompakter Header */}
-      <div className={`bg-gradient-to-r ${techGradient} text-white`}>
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={onBack}
-                className="flex items-center px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
-              >
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                {backButtonLabel || t('backToCatalog', 'Zurück zum Katalog', 'Back to Catalog')}
-              </button>
-
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium">
-                    {technology}
-                  </span>
-                  <span className="text-white/80 text-sm">SIKORA Messtechnik</span>
-                </div>
-                <h1 className="text-2xl lg:text-3xl font-bold">
-                  {formatSikoraProductName(product.Name)}
-                </h1>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3">
-              {/* DEBUG: Super auffälliger Button */}
-              <button
-                onClick={() => {
-                  console.log('Abmessungen Button geklickt!');
-                  setShowDimensions(!showDimensions);
-                }}
-                className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-lg border-4 border-yellow-400 shadow-2xl transform hover:scale-110 transition-all"
-                style={{
-                  backgroundColor: '#ff0000',
-                  color: '#ffffff',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  zIndex: 9999
-                }}
-              >
-                📏 ABMESSUNGEN TEST
-              </button>
-
-              {product.datasheet && (
-                <button
-                  onClick={handleDatasheetDownload}
-                  className="flex items-center gap-2 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  {t('datasheet', 'Datenblatt', 'Datasheet')}
-                </button>
-              )}
-
-              {onLoadToMeasurePoint && availableMeasurePoints.length > 0 && (
-                <button
-                  onClick={() => setShowLoadDialog(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white text-gray-900 rounded-lg hover:bg-gray-100 transition-colors font-semibold"
-                >
-                  <Target className="w-4 h-4" />
-                  {t('loadToMeasurePoint', 'Auf Messpunkt laden', 'Load to Measure Point')}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="container mx-auto px-6 py-6 max-w-none">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: 'calc(100vh - 120px)' }}>
@@ -330,42 +269,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   </div>
                 )}
               </div>
-            </div>
-
-            {/* Mobile Action Buttons */}
-            <div className="lg:hidden mt-4 flex gap-3">
-              {/* Abmessungen Button - Debug: Immer anzeigen */}
-              <button
-                onClick={() => setShowDimensions(!showDimensions)}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors ${
-                  showDimensions
-                    ? 'bg-sikora-cyan text-sikora-blue'
-                    : 'bg-sikora-blue text-white hover:bg-sikora-cyan'
-                }`}
-              >
-                <Ruler className="w-4 h-4" />
-                {t('dimensions', 'Abmessungen', 'Dimensions')}
-              </button>
-
-              {product.datasheet && (
-                <button
-                  onClick={handleDatasheetDownload}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  {t('datasheet', 'Datenblatt', 'Datasheet')}
-                </button>
-              )}
-
-              {onLoadToMeasurePoint && availableMeasurePoints.length > 0 && (
-                <button
-                  onClick={() => setShowLoadDialog(true)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                >
-                  <Target className="w-4 h-4" />
-                  {t('loadToMeasurePoint', 'Auf Messpunkt laden', 'Load to Measure Point')}
-                </button>
-              )}
             </div>
           </div>
 
