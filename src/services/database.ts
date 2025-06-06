@@ -17,8 +17,26 @@ import type {
 class SikoraDatabaseService implements DatabaseService {
   private baseUrl: string;
 
-  constructor(baseUrl = '/api') {
-    this.baseUrl = baseUrl;
+  constructor() {
+    // Environment detection for different deployment scenarios
+    if (typeof window !== 'undefined') {
+      // Browser environment
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        // Development: Use Vite proxy
+        this.baseUrl = '/api';
+      } else if (window.location.hostname.includes('.netlify.app') || window.location.hostname.includes('.netlify.com')) {
+        // Netlify deployment: Use Netlify Functions
+        this.baseUrl = '/.netlify/functions/api';
+      } else {
+        // Other production environments: Check for backend availability
+        this.baseUrl = '/api';
+      }
+    } else {
+      // Server-side rendering fallback
+      this.baseUrl = '/api';
+    }
+
+    console.log(`🔗 SIKORA API Base URL: ${this.baseUrl}`);
   }
 
   private async fetchApi<T>(endpoint: string): Promise<T> {
