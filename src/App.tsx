@@ -61,6 +61,7 @@ function App() {
   const [adminSection, setAdminSection] = useState<string>('dashboard');
   const [showDimensions, setShowDimensions] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [showMeasurePointDialog, setShowMeasurePointDialog] = useState(false);
 
   // Helper function to update state
   const updateState = useCallback((updates: Partial<ConfiguratorState>) => {
@@ -313,8 +314,8 @@ function App() {
   }, []);
 
   const handleLoadToMeasurePointDialog = useCallback(() => {
-    // This would open a dialog to select measure point
-    console.log('Load to measure point dialog would open here');
+    // Open the measure point selection dialog
+    setShowMeasurePointDialog(true);
   }, []);
 
   // New handler for catalog from sidebar
@@ -442,7 +443,6 @@ function App() {
             <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
               <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto">
                 <ProductRecommendationWizard
-                  isOpen={showWizard}
                   onClose={() => setShowWizard(false)}
                   onProductSelect={(productName) => {
                     setShowWizard(false);
@@ -466,11 +466,52 @@ function App() {
             />
           )}
 
+          {/* Measure Point Dialog for Product Detail */}
+          {showMeasurePointDialog && selectedProductName && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full">
+                <div className="p-6">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-4">Produkt auf Messpunkt laden</h3>
+                  <p className="text-gray-600 mb-6">
+                    Wählen Sie einen Messpunkt aus, um <strong>{selectedProductName}</strong> zu konfigurieren:
+                  </p>
+
+                  <div className="space-y-3 mb-6">
+                    {availableMeasurePoints.map((mp) => (
+                      <label key={mp.id} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="measurePointDialog"
+                          value={mp.id}
+                          onChange={() => {
+                            handleLoadToMeasurePoint(selectedProductName, mp.id);
+                            setShowMeasurePointDialog(false);
+                          }}
+                          className="mr-3 w-4 h-4 text-sikora-blue"
+                        />
+                        <span className="font-medium text-gray-900">{mp.name}</span>
+                      </label>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowMeasurePointDialog(false)}
+                      className="flex-1 px-4 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Abbrechen
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {currentView === 'configuration' && (
-            /* Configuration View - Responsive Layout */
+            /* Configuration View - Same layout on all screen sizes */
             <div className="flex w-full h-full">
-              {/* Left Sidebar - Responsive */}
-              <div className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0">
+              {/* Left Sidebar - Always 20% */}
+              <div className="w-1/5 min-w-0 flex-shrink-0 border-r border-gray-200 bg-white">
                 <ConfigurationSidebar
                   scene={state.selectedScene}
                   lineType={state.selectedLineType}
@@ -485,8 +526,8 @@ function App() {
                 />
               </div>
 
-              {/* 3D Scene - Responsive Padding */}
-              <div className="flex-1 p-2 sm:p-4 lg:p-6">
+              {/* 3D Scene - Always 60% */}
+              <div className="w-3/5 min-w-0 flex-shrink-0 p-1 sm:p-2 lg:p-4">
                 <Scene3D
                   sceneData={sceneData || undefined}
                   configuration={state.configuration}
@@ -496,8 +537,8 @@ function App() {
                 />
               </div>
 
-              {/* Right Panel - Responsive */}
-              <div className="hidden xl:block xl:w-80 2xl:w-96 flex-shrink-0">
+              {/* Right Panel - Always 20% */}
+              <div className="w-1/5 min-w-0 flex-shrink-0 border-l border-gray-200 bg-white">
                 <DetailsPanel
                   selectedProduct={selectedProductDetails}
                   selectedMeasurePoint={selectedMeasurePointData}
@@ -510,53 +551,6 @@ function App() {
                   onGoToCatalog={handleGoToCatalogFromSidebar}
                   loading={state.loading}
                 />
-              </div>
-
-              {/* Mobile/Tablet Bottom Panel */}
-              <div className="lg:hidden xl:hidden fixed bottom-0 left-0 right-0 z-30">
-                <div className="bg-white border-t border-gray-200 shadow-lg max-h-60 overflow-y-auto">
-                  <div className="p-3 sm:p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {state.selectedMeasurePoint
-                          ? `Messpunkt: ${selectedMeasurePointData?.Name_DE || selectedMeasurePointData?.Name_EN || state.selectedMeasurePoint}`
-                          : 'Kein Messpunkt ausgewählt'
-                        }
-                      </h3>
-                      <button
-                        onClick={handleShowProductCatalog}
-                        className="text-xs px-2 py-1 bg-sikora-blue text-white rounded hover:bg-sikora-cyan"
-                      >
-                        Katalog
-                      </button>
-                    </div>
-
-                    {state.selectedMeasurePoint && state.products.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-600">Verfügbare Produkte:</p>
-                        <div className="flex flex-wrap gap-1">
-                          {state.products.slice(0, 4).map((product) => (
-                            <button
-                              key={product.Name}
-                              onClick={() => handleProductSelect(product.Name)}
-                              className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 truncate max-w-24"
-                            >
-                              {product.Name.split(' ')[0]}
-                            </button>
-                          ))}
-                          {state.products.length > 4 && (
-                            <button
-                              onClick={handleShowProductCatalog}
-                              className="text-xs px-2 py-1 bg-sikora-blue text-white rounded hover:bg-sikora-cyan"
-                            >
-                              +{state.products.length - 4}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             </div>
           )}

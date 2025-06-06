@@ -196,20 +196,11 @@ class SikoraDatabaseService implements DatabaseService {
   // Scene Data für 3D-Rendering - mit statischen Objekten
   async getSceneData(sceneId: number): Promise<{ scene: Scene; measurePoints: MeasurePoint[]; staticObjects: any[] }> {
     try {
-      const sceneData = await this.fetchApi<any>(`/scenes/${sceneId}/complete`);
+      const sceneData = await this.fetchApi<any>(`/scenes/${sceneId}/data`);
       return sceneData;
     } catch (error) {
-      // Fallback: Separate API calls
-      const [scene, measurePoints] = await Promise.all([
-        this.getScene(sceneId),
-        this.getMeasurePoints(sceneId),
-      ]);
-
-      if (!scene) {
-        throw new Error(`Scene ${sceneId} not found`);
-      }
-
-      return { scene, measurePoints, staticObjects: [] };
+      console.error(`Scene data for ${sceneId} not found:`, error);
+      throw error;
     }
   }
 }
@@ -220,7 +211,21 @@ export const databaseService = new SikoraDatabaseService();
 // Hilfsfunktionen für Entwicklung
 export const testConnection = async (): Promise<boolean> => {
   try {
-    const response = await fetch('/api/health');
+    // Use the same base URL logic as the service
+    const baseUrl = (() => {
+      if (typeof window !== 'undefined') {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          return '/api';
+        } else if (window.location.hostname.includes('.netlify.app') || window.location.hostname.includes('.netlify.com')) {
+          return '/.netlify/functions/api';
+        } else {
+          return '/api';
+        }
+      }
+      return '/api';
+    })();
+    
+    const response = await fetch(`${baseUrl}/health`);
     return response.ok;
   } catch (error) {
     console.error('Database connection test failed:', error);

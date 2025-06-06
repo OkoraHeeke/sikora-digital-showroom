@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
-import { ArrowLeft, Download, FileText, Target, Check, RotateCcw, Maximize2, Info, Zap, Settings, Package, Ruler } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Target, Check, RotateCcw, Maximize2, Info, Zap, Settings, Package, Ruler, ChevronDown, ChevronUp } from 'lucide-react';
 import { databaseService, formatSikoraProductName } from '../services/database';
 import { useLanguage } from '../contexts/LanguageContext';
 import BoundingBoxVisualizer from './BoundingBoxVisualizer';
@@ -59,16 +59,35 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [product, setProduct] = useState<ProductWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'specifications' | 'features' | 'installation'>('overview');
   const [model3DError, setModel3DError] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [selectedMeasurePoint, setSelectedMeasurePoint] = useState<string>('');
   const [localShowDimensions, setLocalShowDimensions] = useState(false);
   const [loadedModel, setLoadedModel] = useState<THREE.Object3D | null>(null);
+  
+  // Collapsible sections state
+  const [expandedSections, setExpandedSections] = useState<{
+    overview: boolean;
+    specifications: boolean;
+    features: boolean;
+    installation: boolean;
+  }>({
+    overview: true, // Start with overview expanded
+    specifications: false,
+    features: false,
+    installation: false
+  });
 
   // Use external dimensions state if provided, otherwise use local state
   const showDimensions = externalShowDimensions !== undefined ? externalShowDimensions : localShowDimensions;
   const toggleDimensions = onToggleDimensions || (() => setLocalShowDimensions(prev => !prev));
+
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   useEffect(() => {
     const loadProductDetails = async () => {
@@ -275,126 +294,175 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           {/* Product Information Panel - Now bigger (1/3 of screen) */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full">
-
-              {/* Section Navigation - Horizontal Pills */}
-              <div className="border-b border-gray-200 p-4">
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: 'overview', label: t('overview', 'Überblick', 'Overview'), icon: Info },
-                    { id: 'specifications', label: t('technicalData', 'Technische Daten', 'Technical Data'), icon: Settings },
-                    { id: 'features', label: t('features', 'Features', 'Features'), icon: Zap },
-                    { id: 'installation', label: t('installation', 'Installation', 'Installation'), icon: FileText }
-                  ].map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => setActiveTab(tab.id as any)}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        activeTab === tab.id
-                          ? 'bg-sikora-blue text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                      }`}
-                    >
-                      <tab.icon className="w-4 h-4" />
-                      <span className="hidden sm:inline">{tab.label}</span>
-                    </button>
-                  ))}
+              {/* Product Header */}
+              <div className="p-6 bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white">
+                <h2 className="text-2xl font-bold mb-2 text-white">
+                  {formatSikoraProductName(product.Name)}
+                </h2>
+                <div className="text-white/80 text-sm">
+                  {getTechnologyType(product.Name)} {t('technology', 'Technologie', 'Technology')}
                 </div>
               </div>
 
-              {/* Tab Content - More space now */}
-              <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
-                {activeTab === 'overview' && (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-4">{t('productDescription', 'Produktbeschreibung', 'Product Description')}</h3>
-                      <div
-                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-                        dangerouslySetInnerHTML={{
-                          __html: getDescription(product) || t('noDescriptionAvailable', 'Keine Beschreibung verfügbar', 'No description available')
-                        }}
-                      />
+              {/* Collapsible Sections */}
+              <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                {/* Overview Section */}
+                <div className="border-b border-gray-200">
+                  <button
+                    onClick={() => toggleSection('overview')}
+                    className="w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Info className="w-5 h-5 text-sikora-blue" />
+                      <span className="font-semibold text-gray-900">{t('overview', 'Überblick', 'Overview')}</span>
                     </div>
-
-                    {product.advantages.length > 0 && (
+                    {expandedSections.overview ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {expandedSections.overview && (
+                    <div className="p-6 space-y-6 bg-gray-50">
                       <div>
-                        <h4 className="text-lg font-semibold text-gray-900 mb-4">{t('yourAdvantages', 'Ihre Vorteile', 'Your Advantages')}</h4>
-                        <div className="space-y-3">
-                          {product.advantages.map((advantage) => (
-                            <div key={advantage.Id} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
-                              <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                              <span className="text-sm text-gray-700">{getAdvantage(advantage)}</span>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">{t('productDescription', 'Produktbeschreibung', 'Product Description')}</h3>
+                        <div
+                          className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+                          dangerouslySetInnerHTML={{
+                            __html: getDescription(product) || t('noDescriptionAvailable', 'Keine Beschreibung verfügbar', 'No description available')
+                          }}
+                        />
+                      </div>
+
+                      {product.advantages.length > 0 && (
+                        <div>
+                          <h4 className="text-md font-semibold text-gray-900 mb-4">{t('yourAdvantages', 'Ihre Vorteile', 'Your Advantages')}</h4>
+                          <div className="space-y-3">
+                            {product.advantages.map((advantage) => (
+                              <div key={advantage.Id} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                                <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                                <span className="text-sm text-gray-700">{getAdvantage(advantage)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Technical Data Section */}
+                <div className="border-b border-gray-200">
+                  <button
+                    onClick={() => toggleSection('specifications')}
+                    className="w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Settings className="w-5 h-5 text-sikora-blue" />
+                      <span className="font-semibold text-gray-900">{t('technicalData', 'Technische Daten', 'Technical Data')}</span>
+                    </div>
+                    {expandedSections.specifications ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {expandedSections.specifications && (
+                    <div className="p-6 bg-gray-50">
+                      {product.specifications.length > 0 ? (
+                        <div className="space-y-4">
+                          {product.specifications.map((spec) => (
+                            <div key={spec.Id} className="border border-gray-200 rounded-lg p-4 bg-white">
+                              <div className="font-medium text-gray-900 mb-2">
+                                {getSpecificationTitle(spec)}
+                              </div>
+                              <div className="text-sikora-blue font-semibold">
+                                {getSpecificationValue(spec)}
+                              </div>
                             </div>
                           ))}
                         </div>
-                      </div>
-                    )}
-                  </div>
-                )}
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Settings className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>{t('noTechnicalDataAvailable', 'Keine technischen Daten verfügbar', 'No technical data available')}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-                {activeTab === 'specifications' && (
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('technicalSpecifications', 'Technische Spezifikationen', 'Technical Specifications')}</h3>
-                    {product.specifications.length > 0 ? (
-                      <div className="space-y-4">
-                        {product.specifications.map((spec) => (
-                          <div key={spec.Id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                            <div className="font-medium text-gray-900 mb-2">
-                              {getSpecificationTitle(spec)}
+                {/* Features Section */}
+                <div className="border-b border-gray-200">
+                  <button
+                    onClick={() => toggleSection('features')}
+                    className="w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Zap className="w-5 h-5 text-sikora-blue" />
+                      <span className="font-semibold text-gray-900">{t('features', 'Features', 'Features')}</span>
+                    </div>
+                    {expandedSections.features ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
+                    )}
+                  </button>
+                  {expandedSections.features && (
+                    <div className="p-6 bg-gray-50">
+                      {product.features.length > 0 ? (
+                        <div className="space-y-3">
+                          {product.features.map((feature) => (
+                            <div key={feature.Id} className="flex items-start gap-3 p-4 border border-blue-200 rounded-lg bg-blue-50">
+                              <Zap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm text-gray-700">{getFeature(feature)}</span>
                             </div>
-                            <div className="text-sikora-blue font-semibold">
-                              {getSpecificationValue(spec)}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-center py-12 text-gray-500">
-                        <Settings className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">{t('noTechnicalDataAvailable', 'Keine technischen Daten verfügbar', 'No technical data available')}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Zap className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>{t('noFeaturesAvailable', 'Keine Features verfügbar', 'No features available')}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
 
-                {activeTab === 'features' && (
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('productFeatures', 'Produktfeatures', 'Product Features')}</h3>
-                    {product.features.length > 0 ? (
-                      <div className="space-y-3">
-                        {product.features.map((feature) => (
-                          <div key={feature.Id} className="flex items-start gap-3 p-4 border border-blue-200 rounded-lg bg-blue-50">
-                            <Zap className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                            <span className="text-sm text-gray-700">{getFeature(feature)}</span>
-                          </div>
-                        ))}
-                      </div>
+                {/* Installation Section */}
+                <div>
+                  <button
+                    onClick={() => toggleSection('installation')}
+                    className="w-full p-4 text-left hover:bg-gray-50 transition-colors flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <FileText className="w-5 h-5 text-sikora-blue" />
+                      <span className="font-semibold text-gray-900">{t('installation', 'Installation', 'Installation')}</span>
+                    </div>
+                    {expandedSections.installation ? (
+                      <ChevronUp className="w-5 h-5 text-gray-400" />
                     ) : (
-                      <div className="text-center py-12 text-gray-500">
-                        <Zap className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">{t('noFeaturesAvailable', 'Keine Features verfügbar', 'No features available')}</p>
-                      </div>
+                      <ChevronDown className="w-5 h-5 text-gray-400" />
                     )}
-                  </div>
-                )}
-
-                {activeTab === 'installation' && (
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('installationAndSetup', 'Installation & Setup', 'Installation & Setup')}</h3>
-                    {product.installation ? (
-                      <div
-                        className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-                        dangerouslySetInnerHTML={{
-                          __html: getInstallationInfo(product.installation)
-                        }}
-                      />
-                    ) : (
-                      <div className="text-center py-12 text-gray-500">
-                        <FileText className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg">{t('noSetupInfoAvailable', 'Keine Setup-Informationen verfügbar', 'No setup information available')}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
+                  </button>
+                  {expandedSections.installation && (
+                    <div className="p-6 bg-gray-50">
+                      {product.installation ? (
+                        <div
+                          className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
+                          dangerouslySetInnerHTML={{
+                            __html: getInstallationInfo(product.installation)
+                          }}
+                        />
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                          <p>{t('noSetupInfoAvailable', 'Keine Setup-Informationen verfügbar', 'No setup information available')}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>

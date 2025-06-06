@@ -463,7 +463,7 @@ const ProductRecommendationWizard: React.FC<ProductRecommendationWizardProps> = 
             {/* Hauptempfehlung */}
             <div className="bg-gradient-to-r from-sikora-blue to-sikora-cyan rounded-lg p-6 text-white mb-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold">{recommendation.productName}</h3>
+                <h3 className="text-xl font-bold text-white">{recommendation.productName}</h3>
                 <div className="flex items-center">
                   <span className="text-sm opacity-90 mr-2">Übereinstimmung:</span>
                   <span className="text-lg font-bold">{recommendation.confidence}%</span>

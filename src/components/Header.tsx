@@ -84,8 +84,8 @@ const Header: React.FC<HeaderProps> = ({
 
   // Determine header background based on view
   const getHeaderBackground = () => {
-    if (currentView === 'productDetail' && productTechnology) {
-      return `bg-gradient-to-r ${getTechnologyGradient(productTechnology)} text-white`;
+    if (currentView === 'productDetail') {
+      return 'bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white';
     }
     if (currentView === 'productCatalog' && showMeasurePointInfo) {
       return 'bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white';
@@ -112,46 +112,44 @@ const Header: React.FC<HeaderProps> = ({
 
             {/* Logo and Title */}
             <div className="flex items-center space-x-3 flex-1 min-w-0">
-              <div className="flex items-center flex-shrink-0">
-                <div className="h-10 flex items-center">
-                  <img
-                    src="/assets/logo.svg"
-                    alt="SIKORA"
-                    className="h-8 w-auto"
-                    style={{
-                      filter: (currentView === 'productDetail' || currentView === 'productCatalog') &&
-                              (productTechnology || showMeasurePointInfo)
-                        ? 'brightness(0) invert(1)'
-                        : 'none'
-                    }}
-                  />
+              {/* Logo - Hide in product catalog and product detail */}
+              {currentView !== 'productCatalog' && currentView !== 'productDetail' && (
+                <div className="flex items-center flex-shrink-0">
+                  <div className="h-10 flex items-center">
+                    <img
+                      src="/assets/logo.svg"
+                      alt="SIKORA"
+                      className="h-8 w-auto"
+                      style={{
+                        filter: ((currentView as string) === 'productDetail' || (currentView as string) === 'productCatalog') &&
+                                (productTechnology || showMeasurePointInfo)
+                          ? 'brightness(0) invert(1)'
+                          : 'none'
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Dynamic Title based on current view */}
               <div className="min-w-0 flex-1">
                 {currentView === 'productDetail' && productName ? (
                   <div>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      {productTechnology && (
-                        <span className="px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium">
-                          {productTechnology}
-                        </span>
-                      )}
-                      <span className="text-white/80 text-xs">SIKORA</span>
-                    </div>
-                    <h1 className="text-lg sm:text-xl font-bold truncate">
-                      {formatSikoraProductName(productName)}
+                    <h1 className="text-lg sm:text-xl font-bold text-white">
+                      SIKORA Digital Showroom
                     </h1>
+                    <p className="text-xs text-white/80">
+                      {t('productDetail', 'Produktdetails', 'Product Details')}
+                    </p>
                   </div>
                 ) : currentView === 'productCatalog' ? (
                   <div>
-                    <h1 className="text-lg sm:text-xl font-bold">
-                      {t('sikoraProductCatalog', 'SIKORA Produktkatalog', 'SIKORA Product Catalog')}
+                    <h1 className="text-lg sm:text-xl font-bold text-white">
+                      SIKORA Digital Showroom {t('productCatalog', 'Produktkatalog', 'Product Catalog')}
                     </h1>
                     {showMeasurePointInfo && selectedMeasurePoint && (
-                      <p className="text-sm opacity-90 truncate">
-                        {selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || `${t('measurePoint', 'Messpunkt', 'Measure Point')} ${selectedMeasurePoint.Id}`}
+                      <p className="text-sm text-white truncate mt-1">
+                        {t('configuringMeasurePoint', 'Sie konfigurieren gerade den Messpunkt:', 'You are currently configuring the measure point:')} {selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN || `${t('measurePoint', 'Messpunkt', 'Measure Point')} ${selectedMeasurePoint.Id}`}
                       </p>
                     )}
                   </div>
@@ -186,13 +184,6 @@ const Header: React.FC<HeaderProps> = ({
                   </button>
                 )}
 
-                {/* Product Count */}
-                {filteredProductsCount !== undefined && totalProductsCount !== undefined && (
-                  <div className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                    {filteredProductsCount} {t('of', 'von', 'of')} {totalProductsCount}
-                  </div>
-                )}
-
                 {/* View Mode Toggle */}
                 {viewMode && onViewModeChange && (
                   <div className="flex bg-gray-100 rounded-lg p-1">
@@ -225,8 +216,8 @@ const Header: React.FC<HeaderProps> = ({
                     onClick={onToggleDimensions}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors text-sm font-medium border-2 ${
                       showDimensions
-                        ? 'bg-sikora-cyan text-white border-sikora-cyan shadow-lg'
-                        : 'bg-white text-sikora-blue hover:bg-sikora-cyan hover:text-white border-white hover:border-sikora-cyan'
+                        ? 'bg-sikora-blue text-white border-sikora-blue shadow-lg'
+                        : 'bg-sikora-blue text-white hover:bg-sikora-cyan border-sikora-blue hover:border-sikora-cyan'
                     }`}
                   >
                     <Ruler className="w-4 h-4" />
@@ -237,7 +228,7 @@ const Header: React.FC<HeaderProps> = ({
                 {hasDatasheet && onDatasheetDownload && (
                   <button
                     onClick={onDatasheetDownload}
-                    className="flex items-center gap-1 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors text-white text-sm font-medium border border-white/30"
+                    className="flex items-center gap-1 px-3 py-1.5 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors text-sm font-medium shadow-md"
                   >
                     <Download className="w-4 h-4" />
                     <span className="hidden sm:inline">{t('datasheet', 'Datenblatt', 'Datasheet')}</span>
@@ -296,14 +287,18 @@ const Header: React.FC<HeaderProps> = ({
             {/* Admin Button */}
             <button
               onClick={onShowAdmin}
-              className="p-1.5 text-gray-600 hover:text-sikora-blue hover:bg-gray-50 rounded-lg transition-colors"
+              className={`p-1.5 rounded-lg transition-colors ${
+                currentView === 'productDetail' 
+                  ? 'text-white/80 hover:text-white hover:bg-white/10' 
+                  : 'text-gray-600 hover:text-sikora-blue hover:bg-gray-50'
+              }`}
               title="Admin"
             >
               <Settings className="w-4 h-4" />
             </button>
 
             {/* Catalog Button (if not already in catalog) */}
-            {currentView !== 'productCatalog' && (
+            {currentView !== 'productCatalog' && currentView !== 'productDetail' && (
               <button
                 onClick={onShowProductCatalog}
                 className="flex items-center gap-1 px-3 py-1.5 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors text-sm font-medium"

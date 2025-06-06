@@ -35,7 +35,7 @@ const MeasurePointDetail: React.FC<MeasurePointDetailProps> = ({
           <MapPin className="w-5 h-5" />
           <span className="text-sm font-medium">{t('measurePointDetails', 'Messpunkt Details', 'Measure Point Details')}</span>
         </div>
-        <h2 className="text-lg font-bold leading-tight">
+        <h2 className="text-lg font-bold leading-tight text-white">
           {measurePointName}
         </h2>
         <p className="text-xs text-white/80 mt-1">ID: {measurePoint.Id}</p>

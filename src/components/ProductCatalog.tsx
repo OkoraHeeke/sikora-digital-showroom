@@ -384,16 +384,14 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                         />
 
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-                          <div className="text-xs text-gray-500">
-                            SIKORA Messtechnik
-                          </div>
+                          {/* Removed SIKORA Messtechnik text to give more space for product names */}
 
                           {/* Action Buttons */}
-                          <div className="flex gap-2">
+                          <div className="flex gap-2 w-full sm:w-auto">
                             {/* Details Button */}
                             <button
                               onClick={() => onProductSelect?.(product.Name)}
-                              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm text-white bg-sikora-blue rounded-lg hover:bg-sikora-cyan transition-all duration-200 font-medium shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+                              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm text-white bg-sikora-blue rounded-lg hover:bg-sikora-cyan transition-all duration-200 font-medium shadow-sm hover:shadow-md transform hover:-translate-y-0.5 flex-1 sm:flex-none justify-center"
                             >
                               <ExternalLink className="w-4 h-4" />
                               {t('viewDetails', 'Details ansehen', 'View details')}

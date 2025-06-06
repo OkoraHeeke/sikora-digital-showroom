@@ -12,6 +12,13 @@ export default defineConfig({
   server: {
     port: 3000,
     host: true,
+    hmr: {
+      overlay: true
+    },
+    watch: {
+      usePolling: true,
+      interval: 100
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
@@ -30,5 +37,8 @@ export default defineConfig({
       }
     }
   },
-  publicDir: 'public'
+  publicDir: 'public',
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'three', '@react-three/fiber', '@react-three/drei']
+  }
 }); 
