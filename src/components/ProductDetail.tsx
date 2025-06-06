@@ -1,10 +1,12 @@
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
-import { ArrowLeft, Download, FileText, Target, Check, RotateCcw, Maximize2, Info, Zap, Settings, Package } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Target, Check, RotateCcw, Maximize2, Info, Zap, Settings, Package, Ruler } from 'lucide-react';
 import { databaseService, formatSikoraProductName } from '../services/database';
 import { useLanguage } from '../contexts/LanguageContext';
+import BoundingBoxVisualizer from './BoundingBoxVisualizer';
 import type { ProductWithDetails } from '../types';
+import * as THREE from 'three';
 
 interface ProductDetailProps {
   productName: string;
@@ -17,24 +19,33 @@ interface ProductDetailProps {
 interface Model3DProps {
   url: string;
   productName: string;
+  onObjectLoad?: (object: THREE.Object3D) => void;
 }
 
-const Model3D: React.FC<Model3DProps> = ({ url, productName }) => {
+const Model3D: React.FC<Model3DProps> = ({ url, productName, onObjectLoad }) => {
   const { scene } = useGLTF(url);
-  
+  const modelRef = useRef<THREE.Object3D>(null);
+
+  useEffect(() => {
+    if (scene && onObjectLoad) {
+      onObjectLoad(scene);
+    }
+  }, [scene, onObjectLoad]);
+
   return (
-    <primitive 
-      object={scene} 
-      scale={[1, 1, 1]} 
+    <primitive
+      ref={modelRef}
+      object={scene}
+      scale={[1, 1, 1]}
       position={[0, 0, 0]}
       rotation={[0, 0, 0]}
     />
   );
 };
 
-const ProductDetail: React.FC<ProductDetailProps> = ({ 
-  productName, 
-  onBack, 
+const ProductDetail: React.FC<ProductDetailProps> = ({
+  productName,
+  onBack,
   onLoadToMeasurePoint,
   availableMeasurePoints = [],
   backButtonLabel
@@ -47,6 +58,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [model3DError, setModel3DError] = useState(false);
   const [showLoadDialog, setShowLoadDialog] = useState(false);
   const [selectedMeasurePoint, setSelectedMeasurePoint] = useState<string>('');
+  const [showDimensions, setShowDimensions] = useState(false);
+  const [loadedModel, setLoadedModel] = useState<THREE.Object3D | null>(null);
 
   useEffect(() => {
     const loadProductDetails = async () => {
@@ -135,6 +148,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   };
 
+  const handleModelLoad = (object: THREE.Object3D) => {
+    setLoadedModel(object);
+  };
+
   const getTechnologyType = (productName: string): string => {
     if (productName.includes('X-RAY')) return 'X-RAY';
     if (productName.includes('LASER')) return 'LASER';
@@ -149,7 +166,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const getTechnologyColor = (tech: string): string => {
     const colors = {
       'X-RAY': 'from-red-500 to-red-600',
-      'LASER': 'from-blue-500 to-blue-600', 
+      'LASER': 'from-blue-500 to-blue-600',
       'SPARK': 'from-yellow-500 to-yellow-600',
       'CENTERVIEW': 'from-green-500 to-green-600',
       'CENTERWAVE': 'from-indigo-500 to-indigo-600',
@@ -176,7 +193,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center text-red-600">
           <p className="text-xl mb-4">⚠️ {error}</p>
-          <button 
+          <button
             onClick={onBack}
             className="px-6 py-3 bg-sikora-blue text-white rounded-lg hover:bg-sikora-cyan transition-colors"
           >
@@ -205,7 +222,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 {backButtonLabel || t('backToCatalog', 'Zurück zum Katalog', 'Back to Catalog')}
               </button>
-              
+
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="px-2 py-0.5 bg-white/20 backdrop-blur-sm rounded-full text-xs font-medium">
@@ -220,7 +237,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
             </div>
 
             {/* Action Buttons */}
-            <div className="hidden lg:flex items-center gap-3">
+            <div className="flex items-center gap-3">
+              {/* DEBUG: Super auffälliger Button */}
+              <button
+                onClick={() => {
+                  console.log('Abmessungen Button geklickt!');
+                  setShowDimensions(!showDimensions);
+                }}
+                className="flex items-center gap-2 px-6 py-3 bg-red-500 text-white rounded-lg border-4 border-yellow-400 shadow-2xl transform hover:scale-110 transition-all"
+                style={{
+                  backgroundColor: '#ff0000',
+                  color: '#ffffff',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  zIndex: 9999
+                }}
+              >
+                📏 ABMESSUNGEN TEST
+              </button>
+
               {product.datasheet && (
                 <button
                   onClick={handleDatasheetDownload}
@@ -230,7 +265,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   {t('datasheet', 'Datenblatt', 'Datasheet')}
                 </button>
               )}
-              
+
               {onLoadToMeasurePoint && availableMeasurePoints.length > 0 && (
                 <button
                   onClick={() => setShowLoadDialog(true)}
@@ -248,13 +283,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       {/* Main Content */}
       <div className="container mx-auto px-6 py-6 max-w-none">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" style={{ minHeight: 'calc(100vh - 120px)' }}>
-          
+
           {/* 3D Model - Takes 2/3 of the screen */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full">
               <div className="relative bg-gradient-to-br from-gray-50 to-gray-100" style={{ height: 'calc(100vh - 160px)' }}>
                 {modelUrl && !model3DError ? (
-                  <Canvas 
+                  <Canvas
                     camera={{ position: [2, 2, 2], fov: 45 }}
                     className="w-full h-full"
                   >
@@ -264,10 +299,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                       <directionalLight position={[10, 10, 5]} intensity={1.2} />
                       <pointLight position={[-10, -10, -5]} intensity={0.5} />
                       <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={[30, 15]} blur={2} />
-                      <Model3D url={modelUrl} productName={product.Name} />
-                      <OrbitControls 
-                        enablePan={true} 
-                        enableZoom={true} 
+                      <Model3D
+                        url={modelUrl}
+                        productName={product.Name}
+                        onObjectLoad={handleModelLoad}
+                      />
+                      <BoundingBoxVisualizer
+                        targetObject={loadedModel}
+                        visible={showDimensions}
+                        color="#003A62"
+                      />
+                      <OrbitControls
+                        enablePan={true}
+                        enableZoom={true}
                         enableRotate={true}
                         autoRotate={false}
                         minDistance={1}
@@ -290,6 +334,19 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
 
             {/* Mobile Action Buttons */}
             <div className="lg:hidden mt-4 flex gap-3">
+              {/* Abmessungen Button - Debug: Immer anzeigen */}
+              <button
+                onClick={() => setShowDimensions(!showDimensions)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition-colors ${
+                  showDimensions
+                    ? 'bg-sikora-cyan text-sikora-blue'
+                    : 'bg-sikora-blue text-white hover:bg-sikora-cyan'
+                }`}
+              >
+                <Ruler className="w-4 h-4" />
+                {t('dimensions', 'Abmessungen', 'Dimensions')}
+              </button>
+
               {product.datasheet && (
                 <button
                   onClick={handleDatasheetDownload}
@@ -299,7 +356,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   {t('datasheet', 'Datenblatt', 'Datasheet')}
                 </button>
               )}
-              
+
               {onLoadToMeasurePoint && availableMeasurePoints.length > 0 && (
                 <button
                   onClick={() => setShowLoadDialog(true)}
@@ -315,7 +372,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           {/* Product Information Panel - Now bigger (1/3 of screen) */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full">
-              
+
               {/* Section Navigation - Horizontal Pills */}
               <div className="border-b border-gray-200 p-4">
                 <div className="flex flex-wrap gap-2">
@@ -347,14 +404,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-xl font-semibold text-gray-900 mb-4">{t('productDescription', 'Produktbeschreibung', 'Product Description')}</h3>
-                      <div 
+                      <div
                         className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-                        dangerouslySetInnerHTML={{ 
+                        dangerouslySetInnerHTML={{
                           __html: getDescription(product) || t('noDescriptionAvailable', 'Keine Beschreibung verfügbar', 'No description available')
                         }}
                       />
                     </div>
-                    
+
                     {product.advantages.length > 0 && (
                       <div>
                         <h4 className="text-lg font-semibold text-gray-900 mb-4">{t('yourAdvantages', 'Ihre Vorteile', 'Your Advantages')}</h4>
@@ -421,9 +478,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   <div>
                     <h3 className="text-xl font-semibold text-gray-900 mb-6">{t('installationAndSetup', 'Installation & Setup', 'Installation & Setup')}</h3>
                     {product.installation ? (
-                      <div 
+                      <div
                         className="prose prose-sm max-w-none text-gray-700 leading-relaxed"
-                        dangerouslySetInnerHTML={{ 
+                        dangerouslySetInnerHTML={{
                           __html: getInstallationInfo(product.installation)
                         }}
                       />
@@ -450,7 +507,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               <p className="text-gray-600 mb-6">
                 {t('selectMeasurePointToConfig', 'Wählen Sie einen Messpunkt aus, um', 'Select a measure point to configure')} <strong>{formatSikoraProductName(product.Name)}</strong> {t('toConfigure', 'zu konfigurieren', '')}:
               </p>
-              
+
               <div className="space-y-3 mb-6">
                 {availableMeasurePoints.map((mp) => (
                   <label key={mp.id} className="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer">
@@ -466,7 +523,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   </label>
                 ))}
               </div>
-              
+
               <div className="flex gap-3">
                 <button
                   onClick={() => {
@@ -493,4 +550,4 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   );
 };
 
-export default ProductDetail; 
+export default ProductDetail;
