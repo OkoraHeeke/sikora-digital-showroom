@@ -12,53 +12,59 @@ let db;
 
 const initDatabase = () => {
   if (!db) {
-    // In serverless environment, we need to handle database differently
-    const dbPath = path.join(__dirname, '../../DB/database.sqlite');
+    // For Netlify Functions, always use in-memory database with complete data
+    console.log('Initializing in-memory database with complete SIKORA data');
+    db = new sqlite3.Database(':memory:');
     
-    // Check if database exists, if not create fallback
-    if (!fs.existsSync(dbPath)) {
-      console.log('Database not found, using in-memory fallback');
-      db = new sqlite3.Database(':memory:');
-      // Create basic tables for fallback
-      db.serialize(() => {
-        db.run(`CREATE TABLE IF NOT EXISTS Scene (
-          Id INTEGER PRIMARY KEY,
-          Name_EN TEXT,
-          Name_DE TEXT,
-          CameraStartX REAL DEFAULT 0,
-          CameraStartY REAL DEFAULT 5,
-          CameraStartZ REAL DEFAULT 10
-        )`);
-        
-        db.run(`CREATE TABLE IF NOT EXISTS MeasurePoint (
-          Id INTEGER PRIMARY KEY,
-          Name_EN TEXT,
-          Name_DE TEXT,
-          SpacePosX REAL DEFAULT 0,
-          SpacePosY REAL DEFAULT 0,
-          SpacePosZ REAL DEFAULT 0,
-          Scene_Id INTEGER
-        )`);
-        
-        db.run(`CREATE TABLE IF NOT EXISTS Product (
-          Name TEXT PRIMARY KEY,
-          Object3D_Url TEXT,
-          Description_EN TEXT,
-          Description_DE TEXT
-        )`);
-        
-        // Insert fallback data
-        db.run(`INSERT OR IGNORE INTO Scene (Id, Name_EN, Name_DE) VALUES (1, 'Cable Line', 'Kabellinie')`);
-        db.run(`INSERT OR IGNORE INTO MeasurePoint (Id, Name_EN, Name_DE, SpacePosX, SpacePosZ, Scene_Id) VALUES 
-          (1, 'Preheating', 'Leitervorheizung', -12, 0, 1),
-          (2, 'Extrusion', 'Extruderschmelze', -6, 0, 1),
-          (3, 'After Extruder', 'Nach Extruder', 0, 0, 1),
-          (4, 'Wall Thickness', 'Wanddicke/Exzentrizität', 6, 0, 1),
-          (5, 'Defect Detection', 'Knotendetektion', 12, 0, 1)`);
-      });
-    } else {
-      db = new sqlite3.Database(dbPath);
-    }
+    // Create tables and populate with real data
+    db.serialize(() => {
+      // Create tables
+      db.run(`CREATE TABLE Scene (
+        Id INTEGER PRIMARY KEY,
+        Name_EN TEXT,
+        Name_DE TEXT,
+        CameraStartX REAL DEFAULT 0,
+        CameraStartY REAL DEFAULT 5,
+        CameraStartZ REAL DEFAULT 10
+      )`);
+      
+      db.run(`CREATE TABLE MeasurePoint (
+        Id INTEGER PRIMARY KEY,
+        Name_EN TEXT,
+        Name_DE TEXT,
+        SpacePosX REAL DEFAULT 0,
+        SpacePosY REAL DEFAULT 0,
+        SpacePosZ REAL DEFAULT 0,
+        Scene_Id INTEGER
+      )`);
+      
+      db.run(`CREATE TABLE Product (
+        Name TEXT PRIMARY KEY,
+        Object3D_Url TEXT,
+        Description_EN TEXT,
+        Description_DE TEXT
+      )`);
+      
+      // Insert real SIKORA data
+      db.run(`INSERT INTO Scene (Id, Name_EN, Name_DE, CameraStartX, CameraStartY, CameraStartZ) 
+              VALUES (1, 'Wire & Cable CV Line', 'Draht & Kabel CV Linie', 3.0, 3.0, 3.0)`);
+      
+      db.run(`INSERT INTO MeasurePoint (Id, Name_EN, Name_DE, SpacePosX, SpacePosY, SpacePosZ, Scene_Id) VALUES 
+        (1, 'Inlet Zone', 'Einzugszone', -12.31, 0.0, 0.0, 1),
+        (2, 'Extrusion Zone', 'Extruderschmelze', -0.03, 0.0, 0.0, 1),
+        (3, 'After Extruder', 'Nach Extruder', 0.0, 0.0, 0.0, 1),
+        (4, 'Cooling Zone', 'Kühlzone', 13.63, 0.0, 0.0, 1),
+        (5, 'Wall Thickness/Eccentricity', 'Wanddicke/Exzentrizität', 4.85, 1.0, 0.0, 1)`);
+      
+      db.run(`INSERT INTO Product (Name, Object3D_Url, Description_EN, Description_DE) VALUES 
+        ('CENTERVIEW 8000', '/api/assets/models/CENTERVIEW_8000.glb', 'CENTERVIEW 8000 laser measurement', 'CENTERVIEW 8000 Lasermessung'),
+        ('X-RAY 8000 NXT', '/api/assets/models/X-RAY_8000_NXT.glb', 'X-RAY 8000 NXT wall thickness measurement', 'X-RAY 8000 NXT Wanddickenmessung'),
+        ('LASER 2000 D', '/api/assets/models/LASER_2000_D.glb', 'LASER 2000 D diameter measurement', 'LASER 2000 D Durchmessermessung'),
+        ('SPARK 8000', '/api/assets/models/SPARK_8000.glb', 'SPARK 8000 spark testing', 'SPARK 8000 Funkenprüfung'),
+        ('PREHEATER 6000', '/api/assets/models/PREHEATER_6000.glb', 'PREHEATER 6000 conductor preheating', 'PREHEATER 6000 Leitervorheizung')`);
+      
+      console.log('Database initialized with complete SIKORA product data');
+    });
   }
   return db;
 };
