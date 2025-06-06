@@ -1,9 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Filter, ArrowLeft, ExternalLink, Grid, List, MapPin, Info, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { Search, Filter, ArrowLeft, ExternalLink, Grid, List, MapPin, Info, Lightbulb, Ruler, X } from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
 import { databaseService, formatSikoraProductName } from '../services/database';
 import { useLanguage } from '../contexts/LanguageContext';
 import ProductRecommendationWizard from './ProductRecommendationWizard';
+import BoundingBoxVisualizer from './BoundingBoxVisualizer';
 import type { Product, ProductCategory, MeasurePoint } from '../types';
+import * as THREE from 'three';
 
 interface ProductCatalogProps {
   onBackToLineSelection: () => void;
@@ -31,6 +35,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showWizard, setShowWizard] = useState(false);
+  const [showDimensionsModal, setShowDimensionsModal] = useState(false);
+  const [selectedProductForDimensions, setSelectedProductForDimensions] = useState<Product | null>(null);
+  const [loadedModel, setLoadedModel] = useState<THREE.Object3D | null>(null);
 
   // Helper functions for language-specific content
   const getProductDescription = (product: Product) => {
@@ -48,6 +55,53 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     { id: 'PREHEATER', name: 'PREHEATER', color: 'bg-orange-100 text-orange-800' },
     { id: 'ECOCONTROL', name: 'ECOCONTROL', color: 'bg-teal-100 text-teal-800' },
   ];
+
+  // Model3D component for dimensions modal
+  interface Model3DProps {
+    url: string;
+    productName: string;
+    onObjectLoad?: (object: THREE.Object3D) => void;
+  }
+
+  const Model3D: React.FC<Model3DProps> = ({ url, productName, onObjectLoad }) => {
+    const { scene } = useGLTF(url);
+
+    useEffect(() => {
+      if (scene && onObjectLoad) {
+        onObjectLoad(scene);
+      }
+    }, [scene, onObjectLoad]);
+
+    return (
+      <primitive
+        object={scene}
+        scale={[1, 1, 1]}
+        position={[0, 0, 0]}
+        rotation={[0, 0, 0]}
+      />
+    );
+  };
+
+  // Helper functions
+  const get3DModelUrl = (product: Product) => {
+    if (product.Object3D_Url && !product.Object3D_Url.startsWith('http')) {
+      let cleanPath = product.Object3D_Url.replace(/^public\//, '').replace(/^assets\//, '');
+      cleanPath = cleanPath.replace(/x-ray_6000_pro/g, 'x_ray_6000');
+      cleanPath = cleanPath.replace(/x-ray_8000/g, 'x_ray_8000');
+      return `/api/assets/${cleanPath}`;
+    }
+    return product.Object3D_Url || null;
+  };
+
+  const handleShowDimensions = (product: Product) => {
+    setSelectedProductForDimensions(product);
+    setShowDimensionsModal(true);
+    setLoadedModel(null);
+  };
+
+  const handleModelLoad = (object: THREE.Object3D) => {
+    setLoadedModel(object);
+  };
 
   // Load data on component mount
   useEffect(() => {
@@ -414,14 +468,27 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                             SIKORA Messtechnik
                           </div>
 
-                          {/* Single Details Button */}
-                          <button
-                            onClick={() => onProductSelect?.(product.Name)}
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors"
-                          >
-                            <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
-                            {t('viewDetails', 'Details ansehen', 'View details')}
-                          </button>
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            {/* Dimensions Button */}
+                            <button
+                              onClick={() => handleShowDimensions(product)}
+                              className="flex items-center gap-1 px-2 py-1.5 text-xs sm:text-sm text-sikora-blue bg-sikora-blue/10 border border-sikora-blue/20 rounded-md hover:bg-sikora-blue/20 transition-colors"
+                              title={t('showDimensions', 'Abmessungen anzeigen', 'Show dimensions')}
+                            >
+                              <Ruler className="w-3 h-3 sm:w-4 sm:h-4" />
+                              <span className="hidden sm:inline">{t('dimensions', 'Maße', 'Dims')}</span>
+                            </button>
+
+                            {/* Details Button */}
+                            <button
+                              onClick={() => onProductSelect?.(product.Name)}
+                              className="flex items-center gap-1 px-3 py-1.5 text-xs sm:text-sm text-white bg-sikora-blue rounded-md hover:bg-sikora-cyan transition-colors"
+                            >
+                              <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4" />
+                              {t('viewDetails', 'Details ansehen', 'View details')}
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -442,6 +509,105 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             onProductSelect?.(productName);
           }}
         />
+      )}
+
+      {/* Dimensions Modal */}
+      {showDimensionsModal && selectedProductForDimensions && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold mb-1">
+                    {t('productDimensions', 'Produktabmessungen', 'Product Dimensions')}
+                  </h3>
+                  <p className="text-sm text-white/80">
+                    {formatSikoraProductName(selectedProductForDimensions.Name)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowDimensionsModal(false);
+                    setSelectedProductForDimensions(null);
+                    setLoadedModel(null);
+                  }}
+                  className="p-2 bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* 3D Model View */}
+            <div className="p-6">
+              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden" style={{ height: '500px' }}>
+                {get3DModelUrl(selectedProductForDimensions) ? (
+                  <Canvas
+                    camera={{ position: [2, 2, 2], fov: 45 }}
+                    className="w-full h-full"
+                  >
+                    <Suspense fallback={null}>
+                      <Environment preset="city" />
+                      <ambientLight intensity={0.6} />
+                      <directionalLight position={[10, 10, 5]} intensity={1.2} />
+                      <pointLight position={[-10, -10, -5]} intensity={0.5} />
+                      <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={[30, 15]} blur={2} />
+                      <Model3D
+                        url={get3DModelUrl(selectedProductForDimensions)}
+                        productName={selectedProductForDimensions.Name}
+                        onObjectLoad={handleModelLoad}
+                      />
+                      <BoundingBoxVisualizer
+                        targetObject={loadedModel}
+                        visible={true}
+                        color="#003A62"
+                      />
+                      <OrbitControls
+                        enablePan={true}
+                        enableZoom={true}
+                        enableRotate={true}
+                        autoRotate={false}
+                        minDistance={1}
+                        maxDistance={8}
+                        maxPolarAngle={Math.PI / 1.8}
+                      />
+                    </Suspense>
+                  </Canvas>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <div className="text-center text-gray-400">
+                      <Ruler className="w-20 h-20 mx-auto mb-4" />
+                      <p className="text-xl font-semibold">
+                        {t('3dModelNotAvailable', '3D-Modell nicht verfügbar', '3D model not available')}
+                      </p>
+                      <p className="text-sm mt-2">
+                        {t('dimensionsNotAvailable', 'Abmessungen für dieses Produkt nicht verfügbar', 'Dimensions not available for this product')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Instructions */}
+              <div className="mt-4 p-4 bg-sikora-blue/5 border border-sikora-blue/20 rounded-lg">
+                <div className="flex items-start gap-3">
+                  <Info className="w-5 h-5 text-sikora-blue mt-0.5 flex-shrink-0" />
+                  <div className="text-sm text-gray-700">
+                    <p className="font-medium text-sikora-blue mb-1">
+                      {t('interactionHint', 'Interaktion', 'Interaction')}:
+                    </p>
+                    <p>
+                      {t('dimensionsInstructions',
+                        'Nutzen Sie die Maus, um das 3D-Modell zu drehen, zoomen und schwenken. Die Abmessungen werden automatisch angezeigt.',
+                        'Use the mouse to rotate, zoom and pan the 3D model. Dimensions are displayed automatically.')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
