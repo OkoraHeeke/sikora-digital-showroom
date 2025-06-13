@@ -4,6 +4,7 @@ import { Canvas } from '@react-three/fiber';
 import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
 import { databaseService, formatSikoraProductName } from '../services/database';
 import { useLanguage } from '../contexts/LanguageContext';
+import { api } from '../api';
 import ProductRecommendationWizard from './ProductRecommendationWizard';
 import BoundingBoxVisualizer from './BoundingBoxVisualizer';
 import type { Product, ProductCategory, MeasurePoint } from '../types';
@@ -31,6 +32,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [selectedTechnology, setSelectedTechnology] = useState<string>('');
+  const [selectedDiameterRange, setSelectedDiameterRange] = useState<string>('');
+  const [selectedApplication, setSelectedApplication] = useState<string>('');
+  const [selectedMeasurementType, setSelectedMeasurementType] = useState<string>('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +42,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [showDimensionsModal, setShowDimensionsModal] = useState(false);
   const [selectedProductForDimensions, setSelectedProductForDimensions] = useState<Product | null>(null);
   const [loadedModel, setLoadedModel] = useState<THREE.Object3D | null>(null);
+  const [measurePointProducts, setMeasurePointProducts] = useState<Product[]>([]);
+  const [showOnlyAvailableProducts, setShowOnlyAvailableProducts] = useState(false);
 
   // Helper functions for language-specific content
   const getProductDescription = (product: Product) => {
@@ -54,6 +60,35 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     { id: 'CENTERWAVE', name: 'CENTERWAVE', color: 'bg-indigo-100 text-indigo-800' },
     { id: 'PREHEATER', name: 'PREHEATER', color: 'bg-orange-100 text-orange-800' },
     { id: 'ECOCONTROL', name: 'ECOCONTROL', color: 'bg-teal-100 text-teal-800' },
+  ];
+
+  // Diameter ranges for filtering
+  const diameterRanges = [
+    { id: 'micro', name: '< 1 mm', description: 'Mikro-Anwendungen' },
+    { id: 'small', name: '1 - 10 mm', description: 'Kleine Durchmesser' },
+    { id: 'medium', name: '10 - 50 mm', description: 'Mittlere Durchmesser' },
+    { id: 'large', name: '50 - 200 mm', description: 'Große Durchmesser' },
+    { id: 'xlarge', name: '> 200 mm', description: 'Sehr große Durchmesser' }
+  ];
+
+  // Application areas for filtering
+  const applications = [
+    { id: 'cable-production', name: 'Kabelproduktion' },
+    { id: 'pipe-extrusion', name: 'Rohrextrusion' },
+    { id: 'fiber-optics', name: 'Glasfaser' },
+    { id: 'medical-tubing', name: 'Medizinische Schläuche' },
+    { id: 'automotive', name: 'Automobilindustrie' },
+    { id: 'quality-control', name: 'Qualitätskontrolle' }
+  ];
+
+  // Measurement types for filtering
+  const measurementTypes = [
+    { id: 'diameter', name: 'Durchmessermessung' },
+    { id: 'wall-thickness', name: 'Wanddickenmessung' },
+    { id: 'concentricity', name: 'Exzentrizitätsmessung' },
+    { id: 'capacitance', name: 'Kapazitätsmessung' },
+    { id: 'surface-defects', name: 'Oberflächenfehler' },
+    { id: 'temperature', name: 'Temperaturmessung' }
   ];
 
   // Model3D component for dimensions modal
@@ -127,47 +162,168 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     loadData();
   }, [t]);
 
-  // Filter products based on search, category and technology
+  // Load measurepoint products when measurepoint is selected AND apply filters
   useEffect(() => {
-    let filtered = products;
+    const loadMeasurePointProductsAndFilter = async () => {
+      // First, load measurepoint products if needed
+      if (selectedMeasurePoint) {
+        try {
+          const result = await api.getMeasurePointProducts(selectedMeasurePoint.Id);
+          if (result.success) {
+            setMeasurePointProducts(result.data);
 
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.HTMLDescription_DE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.HTMLDescription_EN?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Filter by technology
-    if (selectedTechnology) {
-      filtered = filtered.filter(product =>
-        product.Name.includes(selectedTechnology)
-      );
-    }
-
-    // Filter by category
-    if (selectedCategory !== null) {
-      const categoryFilters: Record<number, (name: string) => boolean> = {
-        1: (name) => name.includes('X-RAY'),
-        2: (name) => name.includes('LASER'),
-        3: (name) => name.includes('CENTERVIEW'),
-        4: (name) => name.includes('SPARK'),
-        5: (name) => name.includes('FIBER'),
-        6: (name) => name.includes('CENTERWAVE'),
-        7: (name) => name.includes('PREHEATER'),
-        8: (name) => name.includes('ECOCONTROL'),
-      };
-
-      const filter = categoryFilters[selectedCategory];
-      if (filter) {
-        filtered = filtered.filter(product => filter(product.Name));
+            // Now apply filters with the fresh data
+            applyFilters(result.data);
+          } else {
+            console.error('Failed to load measurepoint products:', result.error);
+            setMeasurePointProducts([]);
+            applyFilters([]);
+          }
+        } catch (error) {
+          console.error('Failed to load measurepoint products:', error);
+          setMeasurePointProducts([]);
+          applyFilters([]);
+        }
+      } else {
+        setMeasurePointProducts([]);
+        applyFilters([]);
       }
-    }
+    };
 
-    setFilteredProducts(filtered);
-  }, [products, searchTerm, selectedCategory, selectedTechnology]);
+    const applyFilters = (currentMeasurePointProducts: Product[]) => {
+      let filtered = products;
+
+      // Filter by search term
+      if (searchTerm) {
+        filtered = filtered.filter(product =>
+          product.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.HTMLDescription_DE?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.HTMLDescription_EN?.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Filter by technology
+      if (selectedTechnology) {
+        filtered = filtered.filter(product =>
+          product.Name.includes(selectedTechnology)
+        );
+      }
+
+      // Filter by diameter range
+      if (selectedDiameterRange) {
+        filtered = filtered.filter(product => {
+          const name = product.Name.toLowerCase();
+          switch (selectedDiameterRange) {
+            case 'micro':
+              return name.includes('2005') || name.includes('micro') || name.includes('8010');
+            case 'small':
+              return name.includes('2010') || name.includes('2025') || name.includes('8010') || name.includes('8025');
+            case 'medium':
+              return name.includes('2050') || name.includes('2100') || name.includes('6020') || name.includes('6035');
+            case 'large':
+              return name.includes('2200') || name.includes('6070') || name.includes('6120') || name.includes('6000/400') || name.includes('6000/800');
+            case 'xlarge':
+              return name.includes('6200') || name.includes('6000/1200') || name.includes('6000/1600');
+            default:
+              return true;
+          }
+        });
+      }
+
+      // Filter by application
+      if (selectedApplication) {
+        filtered = filtered.filter(product => {
+          const name = product.Name.toLowerCase();
+          const description = (product.HTMLDescription_DE || '').toLowerCase();
+          switch (selectedApplication) {
+            case 'cable-production':
+              return name.includes('laser') || name.includes('centerview') || name.includes('capacitance') || name.includes('x-ray');
+            case 'pipe-extrusion':
+              return name.includes('centerwave') || name.includes('x-ray') || name.includes('laser');
+            case 'fiber-optics':
+              return name.includes('fiber') || description.includes('glasfaser');
+            case 'medical-tubing':
+              return name.includes('laser') || name.includes('x-ray');
+            case 'automotive':
+              return name.includes('laser') || name.includes('spark') || name.includes('capacitance');
+            case 'quality-control':
+              return true; // All products can be used for quality control
+            default:
+              return true;
+          }
+        });
+      }
+
+      // Filter by measurement type
+      if (selectedMeasurementType) {
+        filtered = filtered.filter(product => {
+          const name = product.Name.toLowerCase();
+          switch (selectedMeasurementType) {
+            case 'diameter':
+              return name.includes('laser');
+            case 'wall-thickness':
+              return name.includes('x-ray') || name.includes('centerwave');
+            case 'concentricity':
+              return name.includes('centerview');
+            case 'capacitance':
+              return name.includes('capacitance');
+            case 'surface-defects':
+              return name.includes('lump');
+            case 'temperature':
+              return name.includes('temp') || name.includes('preheater');
+            default:
+              return true;
+          }
+        });
+      }
+
+      // Filter by category
+      if (selectedCategory !== null) {
+        const categoryFilters: Record<number, (name: string) => boolean> = {
+          1: (name) => name.includes('X-RAY'),
+          2: (name) => name.includes('LASER'),
+          3: (name) => name.includes('CENTERVIEW'),
+          4: (name) => name.includes('SPARK'),
+          5: (name) => name.includes('FIBER'),
+          6: (name) => name.includes('CENTERWAVE'),
+          7: (name) => name.includes('PREHEATER'),
+          8: (name) => name.includes('ECOCONTROL'),
+        };
+
+        const filter = categoryFilters[selectedCategory];
+        if (filter) {
+          filtered = filtered.filter(product => filter(product.Name));
+        }
+      }
+
+      // Filter by measurepoint availability (only when toggle is ON and measurepoint is selected)
+      if (showOnlyAvailableProducts && selectedMeasurePoint) {
+        console.log('🔍 DEBUGGING FILTER LOGIC:');
+        console.log('- showOnlyAvailableProducts:', showOnlyAvailableProducts);
+        console.log('- selectedMeasurePoint:', selectedMeasurePoint.Name_DE);
+        console.log('- currentMeasurePointProducts:', currentMeasurePointProducts.map(p => p.Name));
+        console.log('- products before filter:', filtered.length);
+
+        filtered = filtered.filter(product => {
+          const isAvailable = currentMeasurePointProducts.some(mp => mp.Name === product.Name);
+          console.log(`  Product "${product.Name}": ${isAvailable ? 'KEEP' : 'REMOVE'}`);
+          return isAvailable;
+        });
+
+        console.log('- products after filter:', filtered.length);
+        console.log('🎯 FILTER RESULT: Should show ONLY available products');
+      } else {
+        console.log('🔍 NO FILTER APPLIED:');
+        console.log('- showOnlyAvailableProducts:', showOnlyAvailableProducts);
+        console.log('- selectedMeasurePoint:', selectedMeasurePoint?.Name_DE || 'none');
+        console.log('🎯 RESULT: Should show ALL products');
+      }
+
+      setFilteredProducts(filtered);
+    };
+
+    loadMeasurePointProductsAndFilter();
+  }, [products, searchTerm, selectedCategory, selectedTechnology, selectedDiameterRange, selectedApplication, selectedMeasurementType, showOnlyAvailableProducts, selectedMeasurePoint]);
 
   // Group products by technology series
   const groupedProducts = filteredProducts.reduce((groups, product) => {
@@ -207,6 +363,31 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     setSearchTerm('');
     setSelectedCategory(null);
     setSelectedTechnology('');
+    setSelectedDiameterRange('');
+    setSelectedApplication('');
+    setSelectedMeasurementType('');
+    setShowOnlyAvailableProducts(false);
+  };
+
+  // Helper function to check if product is available for selected measurepoint
+  const isProductAvailableForMeasurePoint = (product: Product): boolean => {
+    if (!selectedMeasurePoint) return true; // If no measurepoint selected, show all products normally
+    return measurePointProducts.some(mp => mp.Name === product.Name);
+  };
+
+  // Helper function to get product card styling based on measurepoint availability
+  const getProductCardStyling = (product: Product): string => {
+    // Only apply special styling when measurepoint is selected AND toggle is OFF (showing all products)
+    if (!selectedMeasurePoint || showOnlyAvailableProducts) {
+      return 'bg-white'; // Normal styling when no measurepoint selected or when showing only available
+    }
+
+    const isAvailable = isProductAvailableForMeasurePoint(product);
+    if (isAvailable) {
+      return 'bg-green-50 border-2 border-green-500 shadow-green-200'; // Green for available products
+    } else {
+      return 'bg-gray-100 opacity-60'; // Grayed out for unavailable products
+    }
   };
 
   if (loading) {
@@ -281,8 +462,68 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               ))}
             </div>
 
+            {/* Additional Filters */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+              {/* Diameter Range Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Durchmesserbereich
+                </label>
+                <select
+                  value={selectedDiameterRange}
+                  onChange={(e) => setSelectedDiameterRange(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sikora-blue focus:border-transparent text-sm"
+                >
+                  <option value="">Alle Durchmesser</option>
+                  {diameterRanges.map((range) => (
+                    <option key={range.id} value={range.id}>
+                      {range.name} - {range.description}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Application Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Anwendungsbereich
+                </label>
+                <select
+                  value={selectedApplication}
+                  onChange={(e) => setSelectedApplication(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sikora-blue focus:border-transparent text-sm"
+                >
+                  <option value="">Alle Anwendungen</option>
+                  {applications.map((app) => (
+                    <option key={app.id} value={app.id}>
+                      {app.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Measurement Type Filter */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Messaufgabe
+                </label>
+                <select
+                  value={selectedMeasurementType}
+                  onChange={(e) => setSelectedMeasurementType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sikora-blue focus:border-transparent text-sm"
+                >
+                  <option value="">Alle Messaufgaben</option>
+                  {measurementTypes.map((type) => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
             {/* Active Filters */}
-            {(searchTerm || selectedCategory || selectedTechnology) && (
+            {(searchTerm || selectedCategory || selectedTechnology || selectedDiameterRange || selectedApplication || selectedMeasurementType || (showOnlyAvailableProducts && selectedMeasurePoint)) && (
               <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-600">
                 <Filter className="w-4 h-4" />
                 <span>{t('activeFilters', 'Aktive Filter', 'Active filters')}:</span>
@@ -296,12 +537,89 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     {technologies.find(t => t.id === selectedTechnology)?.name}
                   </span>
                 )}
+                {selectedDiameterRange && (
+                  <span className="bg-green-600 text-white px-2 py-1 rounded">
+                    {diameterRanges.find(r => r.id === selectedDiameterRange)?.name}
+                  </span>
+                )}
+                {selectedApplication && (
+                  <span className="bg-purple-600 text-white px-2 py-1 rounded">
+                    {applications.find(a => a.id === selectedApplication)?.name}
+                  </span>
+                )}
+                {selectedMeasurementType && (
+                  <span className="bg-orange-600 text-white px-2 py-1 rounded">
+                    {measurementTypes.find(m => m.id === selectedMeasurementType)?.name}
+                  </span>
+                )}
+                {showOnlyAvailableProducts && selectedMeasurePoint && (
+                  <span className="bg-green-600 text-white px-2 py-1 rounded">
+                    {t('onlyAvailableForMeasurePoint', 'Nur für Messpunkt verfügbar', 'Only available for measure point')}
+                  </span>
+                )}
                 <button
                   onClick={clearAllFilters}
                   className="text-sikora-blue hover:text-sikora-cyan underline"
                 >
                   {t('clearAll', 'Alle löschen', 'Clear all')}
                 </button>
+              </div>
+            )}
+
+            {/* Measurepoint Product Availability Legend with Toggle */}
+            {selectedMeasurePoint && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-blue-600" />
+                    <span className="font-medium text-blue-900 text-sm">
+                      {t('selectedMeasurePoint', 'Ausgewählter Messpunkt', 'Selected Measure Point')}: {selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN}
+                    </span>
+                  </div>
+
+                                    {/* Toggle Button */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-blue-700 font-medium">
+                      {showOnlyAvailableProducts ?
+                        'Alle anzeigen' :
+                        'Nur verfügbare'
+                      }
+                    </span>
+                    <button
+                      onClick={() => setShowOnlyAvailableProducts(!showOnlyAvailableProducts)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                        showOnlyAvailableProducts ? 'bg-green-600' : 'bg-gray-300'
+                      }`}
+                      title={showOnlyAvailableProducts ?
+                        'Alle Produkte anzeigen (Toggle ausschalten)' :
+                        'Nur verfügbare Produkte anzeigen (Toggle einschalten)'
+                      }
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                          showOnlyAvailableProducts ? 'translate-x-6' : 'translate-x-1'
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    <span className="text-green-700">{t('availableProducts', 'Verfügbare Produkte', 'Available Products')} ({measurePointProducts.length})</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                    <span className="text-gray-600">{t('unavailableProducts', 'Nicht verfügbare Produkte', 'Unavailable Products')}</span>
+                  </div>
+                  {showOnlyAvailableProducts && (
+                    <div className="flex items-center gap-1 ml-2 px-2 py-1 bg-green-100 rounded-full">
+                      <Filter className="w-3 h-3 text-green-600" />
+                      <span className="text-green-700 font-medium">{t('filtered', 'Gefiltert', 'Filtered')}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -343,12 +661,19 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                     ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6"
                     : "space-y-4"
                 }>
-                  {seriesProducts.map((product) => (
+                  {seriesProducts.map((product) => {
+                    const isAvailable = isProductAvailableForMeasurePoint(product);
+                    const productCardClass = getProductCardStyling(product);
+
+                    return (
                     <div
                       key={product.Name}
-                      className={`bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 group ${
+                      className={`${productCardClass} rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all duration-300 group ${
                         viewMode === 'list' ? 'flex' : ''
-                      }`}
+                      } ${!isAvailable && selectedMeasurePoint && !showOnlyAvailableProducts ? 'cursor-not-allowed' : ''}`}
+                      title={!isAvailable && selectedMeasurePoint && !showOnlyAvailableProducts ?
+                        `Dieses Produkt ist nicht für den Messpunkt "${selectedMeasurePoint.Name_DE || selectedMeasurePoint.Name_EN}" verfügbar` :
+                        ''}
                     >
                       {/* Product Image */}
                       <div className={`relative bg-gray-100 ${
@@ -363,10 +688,21 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                             target.src = `/api/placeholder/300/200`;
                           }}
                         />
-                        <div className="absolute top-2 right-2">
+                        <div className="absolute top-2 right-2 space-y-1">
                           <span className={`px-2 py-1 rounded text-xs font-medium ${getTechnologyColor(product.Name)}`}>
                             {getTechnologyFromProductName(product.Name) || series}
                           </span>
+                          {selectedMeasurePoint && !showOnlyAvailableProducts && (
+                            <div className="flex justify-end">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                isAvailable
+                                  ? 'bg-green-100 text-green-800 border border-green-300'
+                                  : 'bg-red-100 text-red-800 border border-red-300'
+                              }`}>
+                                {isAvailable ? '✓ Verfügbar' : '✗ Nicht verfügbar'}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
@@ -391,7 +727,14 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                             {/* Details Button */}
                             <button
                               onClick={() => onProductSelect?.(product.Name)}
-                              className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm text-white bg-sikora-blue rounded-lg hover:bg-sikora-cyan transition-all duration-200 font-medium shadow-sm hover:shadow-md transform hover:-translate-y-0.5 flex-1 sm:flex-none justify-center"
+                              disabled={!isAvailable && !!selectedMeasurePoint && !showOnlyAvailableProducts}
+                              className={`flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm rounded-lg transition-all duration-200 font-medium shadow-sm flex-1 sm:flex-none justify-center ${
+                                !isAvailable && selectedMeasurePoint && !showOnlyAvailableProducts
+                                  ? 'bg-gray-400 text-gray-600 cursor-not-allowed opacity-50'
+                                  : 'text-white bg-sikora-blue hover:bg-sikora-cyan hover:shadow-md transform hover:-translate-y-0.5'
+                              }`}
+                              title={!isAvailable && selectedMeasurePoint && !showOnlyAvailableProducts ?
+                                'Dieses Produkt ist für den ausgewählten Messpunkt nicht verfügbar' : ''}
                             >
                               <ExternalLink className="w-4 h-4" />
                               {t('viewDetails', 'Details ansehen', 'View details')}
@@ -400,7 +743,8 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             ))
@@ -460,6 +804,13 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                       <ambientLight intensity={0.6} />
                       <directionalLight position={[10, 10, 5]} intensity={1.2} />
                       <pointLight position={[-10, -10, -5]} intensity={0.5} />
+                      <pointLight position={[0, 10, 10]} intensity={0.5} />
+                      <pointLight position={[0, -10, 10]} intensity={0.5} />
+                      <pointLight position={[10, 0, 10]} intensity={0.5} />
+                      <pointLight position={[-10, 0, 10]} intensity={0.5} />
+                      <pointLight position={[0, 0, 10]} intensity={0.5} />
+                      <pointLight position={[0, 0, -10]} intensity={0.5} />
+                      <pointLight position={[0, 0, 0]} intensity={0.5} />
                       <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={[30, 15]} blur={2} />
                       <Model3D
                         url={get3DModelUrl(selectedProductForDimensions) || ''}
