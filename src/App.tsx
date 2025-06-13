@@ -17,6 +17,7 @@ import ParameterManagement from './components/admin/ParameterManagement';
 import ProductMeasurePointMapping from './components/admin/ProductMeasurePointMapping';
 import Object3DManagement from './components/admin/Object3DManagement';
 import UploadManagement from './components/admin/UploadManagement';
+import DevHelper from './components/DevHelper';
 import { LanguageProvider } from './contexts/LanguageContext';
 import {
   databaseService,
@@ -357,7 +358,7 @@ function App() {
     <LanguageProvider>
       <div className="h-screen flex flex-col bg-gray-50">
         {/* Header */}
-        {currentView !== 'admin' && (
+        {currentView !== 'admin' && currentView !== 'productCatalog' && (
           <Header
             currentView={currentView}
             onShowProductCatalog={handleShowProductCatalog}
@@ -578,6 +579,9 @@ function App() {
             </div>
           </div>
         )}
+
+        {/* Development Helper */}
+        <DevHelper />
       </div>
     </LanguageProvider>
   );
