@@ -110,4 +110,4 @@ jspm_packages/
 
 # Temporary files
 tmp/
-temp/ 
+temp/ dist-electron-new/
