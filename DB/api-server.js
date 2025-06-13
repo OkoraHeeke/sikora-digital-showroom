@@ -27,13 +27,29 @@ const upload = multer({
 app.use(cors());
 app.use(express.json());
 
+// Development: No-cache headers for all responses
+app.use((req, res, next) => {
+  // Set no-cache headers for development
+  res.set({
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+    'Surrogate-Control': 'no-store',
+    'ETag': Date.now().toString() // Dynamic ETag to prevent caching
+  });
+  next();
+});
+
 // Datenbank-Verbindung
-const dbPath = path.join(__dirname, 'database.sqlite');
+const dbPath = process.env.DATABASE_PATH || path.join(__dirname, 'database.sqlite');
+console.log('Using database path:', dbPath);
+
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('Error opening database:', err.message);
+    console.error('Database path attempted:', dbPath);
   } else {
-    console.log('Connected to SQLite database');
+    console.log('Connected to SQLite database at:', dbPath);
   }
 });
 
@@ -282,8 +298,10 @@ app.delete('/api/products/:name', async (req, res) => {
       });
     });
 
+    // Note: Join_MeasurePoint_Product table doesn't exist, only AntiJoin_MeasurePoint_Product
+    // Remove from anti-join table if exists
     await new Promise((resolve, reject) => {
-      db.run('DELETE FROM Join_MeasurePoint_Product WHERE Product_Name = ?', [decodedName], function(err) {
+      db.run('DELETE FROM AntiJoin_MeasurePoint_Product WHERE Product_Name = ?', [decodedName], function(err) {
         if (err) reject(err);
         else resolve();
       });

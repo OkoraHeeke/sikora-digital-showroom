@@ -1,7 +1,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Search, ArrowLeft, ExternalLink, Grid, List, X, Sparkles, Eye, Filter, ChevronDown, MapPin, RotateCcw, Globe } from 'lucide-react';
+import { Search, ArrowLeft, ExternalLink, Grid, List, X, Sparkles, Eye, Filter, ChevronDown, MapPin, RotateCcw, Globe, Package } from 'lucide-react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, useGLTF, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, useGLTF, Environment } from '@react-three/drei';
 import { databaseService, formatSikoraProductName } from '../services/database';
 import { useLanguage } from '../contexts/LanguageContext';
 import { api } from '../api';
@@ -40,8 +40,10 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const [selectedProductForDimensions, setSelectedProductForDimensions] = useState<Product | null>(null);
   const [loadedModel, setLoadedModel] = useState<THREE.Object3D | null>(null);
   const [measurePointProducts, setMeasurePointProducts] = useState<Product[]>([]);
-  const [showOnlyAvailableProducts, setShowOnlyAvailableProducts] = useState(true); // Standard: AN
+  const [assignedProducts, setAssignedProducts] = useState<Product[]>([]);
+  const [showOnlyAvailableProducts, setShowOnlyAvailableProducts] = useState(true);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [recommendationsLoading, setRecommendationsLoading] = useState(false);
 
   // Helper functions for language-specific content
   const getProductDescription = (product: Product) => {
@@ -95,6 +97,42 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     onObjectLoad?: (object: THREE.Object3D) => void;
   }
 
+  // Error Boundary für 3D-Modelle
+  class Model3DErrorBoundary extends React.Component<
+    { children: React.ReactNode; productName: string },
+    { hasError: boolean }
+  > {
+    constructor(props: { children: React.ReactNode; productName: string }) {
+      super(props);
+      this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(error: Error) {
+      return { hasError: true };
+    }
+
+    componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+      console.warn(`3D Model Error for ${this.props.productName}:`, error, errorInfo);
+    }
+
+    render() {
+      if (this.state.hasError) {
+        return (
+          <div className="w-full h-48 flex items-center justify-center bg-gray-100 rounded-lg">
+            <div className="text-center text-gray-500">
+              <div className="w-12 h-12 mx-auto mb-2 bg-gray-200 rounded-lg flex items-center justify-center">
+                <Package className="w-6 h-6" />
+              </div>
+              <p className="text-xs">3D-Modell nicht verfügbar</p>
+            </div>
+          </div>
+        );
+      }
+
+      return this.props.children;
+    }
+  }
+
   const Model3D: React.FC<Model3DProps> = ({ url, productName, onObjectLoad }) => {
     const { scene } = useGLTF(url);
 
@@ -118,9 +156,24 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   const get3DModelUrl = (product: Product) => {
     if (product.Object3D_Url && !product.Object3D_Url.startsWith('http')) {
       let cleanPath = product.Object3D_Url.replace(/^public\//, '').replace(/^assets\//, '');
-      cleanPath = cleanPath.replace(/x-ray_6000_pro/g, 'x_ray_6000');
-      cleanPath = cleanPath.replace(/x-ray_8000/g, 'x_ray_8000');
-      return `/api/assets/${cleanPath}`;
+      
+      // Korrigiere nur Verzeichnisnamen, nicht Dateinamen
+      // Teile den Pfad in Verzeichnisse und Dateinamen auf
+      const pathParts = cleanPath.split('/');
+      if (pathParts.length > 1) {
+        // Konvertiere nur das Verzeichnis (vorletztes Element), nicht den Dateinamen
+        for (let i = 0; i < pathParts.length - 1; i++) {
+          pathParts[i] = pathParts[i]
+            .replace(/x-ray_6000_pro/g, 'x_ray_6000')
+            .replace(/x-ray_6000/g, 'x_ray_6000')
+            .replace(/x-ray_8000/g, 'x_ray_8000');
+        }
+        cleanPath = pathParts.join('/');
+      }
+      
+      const finalUrl = `/api/assets/${cleanPath}`;
+      console.log(`3D Model URL for ${product.Name}: ${product.Object3D_Url} -> ${finalUrl}`);
+      return finalUrl;
     }
     return product.Object3D_Url || null;
   };
@@ -148,6 +201,95 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
     return 'SIKORA';
   };
 
+  // Funktion um Produkte nach Serien zu gruppieren
+  const getProductSeries = (productName: string): string => {
+    const name = productName.toLowerCase();
+    
+    // X-RAY Serie
+    if (name.includes('x-ray') || name.includes('x_ray')) {
+      if (name.includes('6000')) return 'X-RAY 6000';
+      if (name.includes('8000')) return 'X-RAY 8000';
+      return 'X-RAY';
+    }
+    
+    // LASER Serie
+    if (name.includes('laser')) {
+      if (name.includes('2000')) return 'LASER 2000';
+      if (name.includes('3000')) return 'LASER 3000';
+      if (name.includes('5000')) return 'LASER 5000';
+      return 'LASER';
+    }
+    
+    // CENTERVIEW Serie
+    if (name.includes('centerview')) return 'CENTERVIEW';
+    
+    // CENTERWAVE Serie
+    if (name.includes('centerwave')) return 'CENTERWAVE';
+    
+    // SPARK Serie
+    if (name.includes('spark')) return 'SPARK';
+    
+    // FIBER Serie
+    if (name.includes('fiber')) return 'FIBER';
+    
+    // Andere Serien
+    if (name.includes('preheater')) return 'PREHEATER';
+    if (name.includes('ecocontrol')) return 'ECOCONTROL';
+    if (name.includes('lump')) return 'LUMP';
+    if (name.includes('capacitance')) return 'CAPACITANCE';
+    if (name.includes('ultratemp')) return 'ULTRATEMP';
+    
+    return 'ANDERE';
+  };
+
+  // Funktion um Produkte nach Serien zu gruppieren
+  const groupProductsBySeries = (products: Product[]) => {
+    const grouped = products.reduce((acc, product) => {
+      const series = getProductSeries(product.Name);
+      if (!acc[series]) {
+        acc[series] = [];
+      }
+      acc[series].push(product);
+      return acc;
+    }, {} as Record<string, Product[]>);
+
+    // Sortiere die Serien in einer logischen Reihenfolge
+    const seriesOrder = [
+      'X-RAY 6000', 'X-RAY 8000', 'X-RAY',
+      'LASER 2000', 'LASER 3000', 'LASER 5000', 'LASER',
+      'CENTERVIEW', 'CENTERWAVE', 'SPARK', 'FIBER',
+      'PREHEATER', 'ECOCONTROL', 'LUMP', 'CAPACITANCE', 'ULTRATEMP',
+      'ANDERE'
+    ];
+
+    const orderedGroups: Record<string, Product[]> = {};
+    
+    // Erstelle "Empfehlung" Kategorie für verfügbare Produkte (nur wenn Messpunkt gewählt und Toggle AN)
+    if (selectedMeasurePoint && showOnlyAvailableProducts && assignedProducts.length > 0) {
+      const availableProducts = products.filter(product => isProductAvailableForMeasurePoint(product));
+      if (availableProducts.length > 0) {
+        orderedGroups['EMPFEHLUNG'] = availableProducts;
+      }
+    }
+    
+    // Füge dann die normalen Serien hinzu (aber nicht die verfügbaren Produkte nochmal)
+    seriesOrder.forEach(series => {
+      if (grouped[series]) {
+        if (selectedMeasurePoint && showOnlyAvailableProducts && assignedProducts.length > 0) {
+          // Filtere verfügbare Produkte aus normalen Serien raus, da sie bereits in "Empfehlung" sind
+          const seriesProducts = grouped[series].filter(product => !isProductAvailableForMeasurePoint(product));
+          if (seriesProducts.length > 0) {
+            orderedGroups[series] = seriesProducts;
+          }
+        } else {
+          orderedGroups[series] = grouped[series];
+        }
+      }
+    });
+
+    return orderedGroups;
+  };
+
   const clearAllFilters = () => {
     setSearchTerm('');
     setSelectedArea('');
@@ -156,27 +298,27 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   };
 
   const isProductAvailableForMeasurePoint = (product: Product): boolean => {
-    if (!selectedMeasurePoint || measurePointProducts.length === 0) return true;
-    return measurePointProducts.some(mp => mp.Name === product.Name);
+    if (!selectedMeasurePoint || assignedProducts.length === 0) return false;
+    return assignedProducts.some(ap => ap.Name === product.Name);
   };
 
-  // Korrigierte Styling-Logik für Produktkarten - standardmäßig grün
+  // Korrigierte Styling-Logik für Produktkarten
   const getProductCardStyling = (product: Product): string => {
     if (!selectedMeasurePoint) {
-      // Standardmäßig grüner Border wenn kein Messpunkt gewählt
-      return 'bg-white border-2 border-green-500 shadow-lg shadow-green-200/20 hover:shadow-xl';
+      // Normale Darstellung wenn kein Messpunkt gewählt
+      return 'bg-white border-2 border-gray-200 shadow-lg hover:shadow-xl hover:border-sikora-blue/30';
     }
 
     const isAvailable = isProductAvailableForMeasurePoint(product);
 
     if (showOnlyAvailableProducts) {
-      // Nur verfügbare anzeigen - alle sehen grün aus (da nur verfügbare gezeigt werden)
-      return 'bg-white border-2 border-green-500 shadow-lg shadow-green-200/20 hover:shadow-xl';
-    } else {
-      // Alle anzeigen - verfügbare GRÜN hervorgehoben, nicht verfügbare ausgegraut
+      // "Nur verfügbare" - verfügbare Produkte GRÜN, nicht verfügbare AUSGEGRAUT
       return isAvailable
-        ? 'bg-white border-2 border-green-500 shadow-lg shadow-green-200/30 hover:shadow-xl'
+        ? 'bg-white border-2 border-green-500 shadow-lg shadow-green-200/20 hover:shadow-xl'
         : 'bg-gray-50 border border-gray-300 opacity-60 cursor-not-allowed';
+    } else {
+      // "Alle anzeigen" - alle Produkte NORMAL anzeigen, keine Grün/Grau Färbung
+      return 'bg-white border-2 border-gray-200 shadow-lg hover:shadow-xl hover:border-sikora-blue/30';
     }
   };
 
@@ -261,18 +403,34 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
   useEffect(() => {
     const loadMeasurePointProducts = async () => {
       if (selectedMeasurePoint) {
+        setRecommendationsLoading(true);
         try {
-          const result = await api.getMeasurePointProducts(selectedMeasurePoint.Id);
-          if (result.success) {
-            setMeasurePointProducts(result.data);
+          // Lade alle verfügbaren Produkte (für Konfiguration)
+          const availableResult = await api.getMeasurePointProducts(selectedMeasurePoint.Id);
+          if (availableResult.success) {
+            setMeasurePointProducts(availableResult.data);
           } else {
             setMeasurePointProducts([]);
           }
+
+          // Lade nur direkt zugeordnete Produkte (für Anzeige)
+          const assignedResult = await api.getMeasurePointAssignedProducts(selectedMeasurePoint.Id);
+          if (assignedResult.success) {
+            setAssignedProducts(assignedResult.data);
+          } else {
+            setAssignedProducts([]);
+          }
         } catch (error) {
+          console.error('Failed to load measure point products:', error);
           setMeasurePointProducts([]);
+          setAssignedProducts([]);
+        } finally {
+          setRecommendationsLoading(false);
         }
       } else {
         setMeasurePointProducts([]);
+        setAssignedProducts([]);
+        setRecommendationsLoading(false);
       }
     };
 
@@ -319,23 +477,39 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
       }
     }
 
-    // Filter by measure point availability if toggle is ON
-    if (selectedMeasurePoint && showOnlyAvailableProducts && measurePointProducts.length > 0) {
-      const availableProductNames = new Set(measurePointProducts.map(p => p.Name));
-      filtered = filtered.filter(product => availableProductNames.has(product.Name));
-    }
+    // KEIN Filter mehr - "Nur verfügbare" zeigt alle Produkte an (grün/grau)
+    // Alle Produkte werden immer angezeigt, nur das Styling unterscheidet sich
 
     setFilteredProducts(filtered);
-  }, [products, searchTerm, selectedArea, selectedMeasurement, selectedDiameterRange, selectedMeasurePoint, showOnlyAvailableProducts, measurePointProducts]);
+  }, [products, searchTerm, selectedArea, selectedMeasurement, selectedDiameterRange, selectedMeasurePoint, showOnlyAvailableProducts, measurePointProducts, assignedProducts]);
 
-  if (loading) {
+  // Combined loading state
+  const isLoading = loading || recommendationsLoading;
+
+  if (isLoading) {
     return (
       <div className="min-h-screen w-full bg-gradient-to-br from-sikora-blue/5 via-white to-sikora-cyan/5 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-sikora-blue to-sikora-cyan rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-2xl shadow-sikora-blue/30 animate-pulse">
-            <Sparkles className="w-8 h-8 text-white" />
+          <div className="w-20 h-20 bg-gradient-to-r from-sikora-blue to-sikora-cyan rounded-3xl mx-auto mb-8 flex items-center justify-center shadow-2xl shadow-sikora-blue/40">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-3 border-white"></div>
           </div>
-          <p className="text-xl font-semibold text-gray-700">{t('loading', 'Lade Produktkatalog...', 'Loading product catalog...')}</p>
+          <h3 className="text-2xl font-bold text-gray-900 mb-3">
+            {recommendationsLoading 
+              ? t('loadingRecommendations', 'Empfehlungen werden geladen', 'Loading recommendations')
+              : t('loadingCatalog', 'Produktkatalog wird geladen', 'Loading product catalog')
+            }
+          </h3>
+          <p className="text-gray-600 text-lg mb-6">
+            {recommendationsLoading
+              ? t('preparingRecommendations', 'Passende Produkte werden ermittelt...', 'Finding suitable products...')
+              : t('loadingProducts', 'Produkte werden vorbereitet...', 'Preparing products...')
+            }
+          </p>
+          <div className="flex items-center justify-center space-x-2">
+            <div className="w-3 h-3 bg-sikora-blue rounded-full animate-bounce"></div>
+            <div className="w-3 h-3 bg-sikora-blue rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+            <div className="w-3 h-3 bg-sikora-blue rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+          </div>
         </div>
       </div>
     );
@@ -384,9 +558,9 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               </div>
             </div>
 
-            {/* Center: Kompakte Suche */}
-            <div className="flex-1 max-w-md mx-4">
-              <div className="relative">
+            {/* Center: Kompakte Suche mit Filter */}
+            <div className="flex-1 max-w-lg mx-4 flex items-center space-x-2">
+              <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <input
                   type="text"
@@ -404,6 +578,20 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   </button>
                 )}
               </div>
+              
+              {/* Filter Button direkt neben Suche */}
+              <button
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className={`flex items-center space-x-1 px-3 py-2 text-sm border rounded-lg transition-all ${
+                  showAdvancedFilters 
+                    ? 'bg-sikora-blue text-white border-sikora-blue' 
+                    : 'text-gray-600 hover:text-sikora-blue border-gray-200 hover:border-sikora-blue/50 bg-white'
+                }`}
+              >
+                <Filter className="w-4 h-4" />
+                <span>{t('filter', 'Filter', 'Filter')}</span>
+                <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+              </button>
             </div>
 
             {/* Right: Actions */}
@@ -412,7 +600,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
               {selectedMeasurePoint && (
                 <div className="flex items-center space-x-2 px-3 py-1.5 bg-gradient-to-r from-sikora-blue/10 to-sikora-cyan/10 rounded-lg border border-sikora-blue/20">
                   <span className="text-xs text-sikora-blue font-medium">
-                    {showOnlyAvailableProducts
+                    {!showOnlyAvailableProducts
                       ? t('show_all', 'Alle anzeigen', 'Show all')
                       : t('only_available', 'Nur verfügbare', 'Available only')
                     }
@@ -420,12 +608,12 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
                   <button
                     onClick={() => setShowOnlyAvailableProducts(!showOnlyAvailableProducts)}
                     className={`relative w-8 h-4 rounded-full transition-all duration-300 ${
-                      !showOnlyAvailableProducts ? 'bg-green-500' : 'bg-gray-300'
+                      showOnlyAvailableProducts ? 'bg-green-500' : 'bg-gray-300'
                     }`}
                   >
                     <div
                       className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform duration-300 ${
-                        !showOnlyAvailableProducts ? 'translate-x-4' : 'translate-x-0.5'
+                        showOnlyAvailableProducts ? 'translate-x-4' : 'translate-x-0.5'
                       }`}
                     />
                   </button>
@@ -466,29 +654,18 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             </div>
           </div>
 
-          {/* Kompakte Filter */}
-          <div className="flex items-center justify-between mt-3">
-            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">{t('filters', 'Filter', 'Filters')}</span>
-            <div className="flex items-center space-x-2">
-              {(searchTerm || selectedArea || selectedMeasurement || selectedDiameterRange) && (
-                <button
-                  onClick={clearAllFilters}
-                  className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:text-sikora-blue bg-gray-100 hover:bg-gray-200 rounded transition-all"
-                >
-                  <RotateCcw className="w-3 h-3" />
-                  <span>{t('reset', 'Reset', 'Reset')}</span>
-                </button>
-              )}
+          {/* Reset Button falls Filter aktiv */}
+          {(searchTerm || selectedArea || selectedMeasurement || selectedDiameterRange) && (
+            <div className="flex justify-end mt-3">
               <button
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-                className="flex items-center space-x-1 px-2 py-1 text-xs text-gray-600 hover:text-sikora-blue transition-all"
+                onClick={clearAllFilters}
+                className="flex items-center space-x-1 px-3 py-1.5 text-sm text-gray-600 hover:text-sikora-blue bg-gray-100 hover:bg-gray-200 rounded-lg transition-all"
               >
-                <Filter className="w-3 h-3" />
-                <span>{t('filter', 'Filter', 'Filter')}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${showAdvancedFilters ? 'rotate-180' : ''}`} />
+                <RotateCcw className="w-4 h-4" />
+                <span>{t('reset', 'Filter zurücksetzen', 'Reset filters')}</span>
               </button>
             </div>
-          </div>
+          )}
 
           {/* Advanced Filters */}
           {showAdvancedFilters && (
@@ -577,108 +754,139 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             </div>
           </div>
         ) : (
-          <div className={
-            viewMode === 'grid'
-              ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
-              : "space-y-4"
-          }>
-            {filteredProducts.map((product, index) => {
-              const isAvailable = isProductAvailableForMeasurePoint(product);
-              const techName = getTechnologyFromProductName(product.Name);
-              const cardStyling = getProductCardStyling(product);
-
-              return (
-                <div
-                  key={product.Name}
-                  className={`group ${cardStyling} rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer transform hover:-translate-y-1 hover:scale-105 ${
-                    viewMode === 'list' ? 'flex' : ''
-                  } ${!isAvailable && selectedMeasurePoint && !showOnlyAvailableProducts ? '' : ''}`}
-                  onClick={() => {
-                    if (!selectedMeasurePoint || isAvailable || !showOnlyAvailableProducts) {
-                      onProductSelect?.(product.Name);
-                    }
-                  }}
-                >
-                  {/* Product Image */}
-                  <div className={`relative overflow-hidden ${
-                    viewMode === 'list' ? 'w-40 flex-shrink-0' : 'h-48'
+          <div className="space-y-8">
+            {Object.entries(groupProductsBySeries(filteredProducts)).map(([seriesName, seriesProducts]) => (
+              <div key={seriesName} className="space-y-4">
+                {/* Serie Header */}
+                <div className="flex items-center space-x-4">
+                  <div className={`px-4 py-2 rounded-xl shadow-lg ${
+                    seriesName === 'EMPFEHLUNG' 
+                      ? 'bg-gradient-to-r from-green-500 to-green-600 text-white'
+                      : 'bg-gradient-to-r from-sikora-blue to-sikora-cyan text-white'
                   }`}>
-                    <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-white to-gray-100"></div>
-                    <img
-                      src={getImageUrl(product)}
-                      alt={product.Name}
-                      className="relative w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = `/api/placeholder/400/300`;
-                      }}
-                    />
+                    <h2 className="text-lg font-bold text-white">
+                      {seriesName === 'EMPFEHLUNG' 
+                        ? t('recommendation', 'Empfehlung', 'Recommendation')
+                        : seriesName
+                      }
+                    </h2>
+                  </div>
+                  <div className={`flex-1 h-px bg-gradient-to-r ${
+                    seriesName === 'EMPFEHLUNG'
+                      ? 'from-green-500/20 to-transparent'
+                      : 'from-sikora-blue/20 to-transparent'
+                  }`}></div>
+                  <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
+                    seriesName === 'EMPFEHLUNG'
+                      ? 'text-green-700 bg-green-100'
+                      : 'text-gray-500 bg-gray-100'
+                  }`}>
+                    {seriesProducts.length} {t('products', 'Produkte', 'Products')}
+                  </span>
+                </div>
 
-                    {/* Technology Badge */}
-                    <div className="absolute top-3 left-3">
-                      <span className="px-2 py-1 rounded-lg text-xs font-bold bg-sikora-blue text-white shadow-lg backdrop-blur-sm">
-                        {techName}
-                      </span>
-                    </div>
+                {/* Serie Produkte */}
+                <div className={
+                  viewMode === 'grid'
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6"
+                    : "space-y-4"
+                }>
+                  {seriesProducts.map((product, index) => {
+                    const isAvailable = isProductAvailableForMeasurePoint(product);
+                    const techName = getTechnologyFromProductName(product.Name);
+                    const cardStyling = getProductCardStyling(product);
 
-                    {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
-                      <div className="absolute bottom-3 left-3 right-3">
-                        <div className="flex items-center justify-between text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                          <span className="font-semibold bg-black/30 backdrop-blur-sm px-2 py-1 rounded text-sm">
-                            {t('details', 'Details', 'Details')}
-                          </span>
-                          <ExternalLink className="w-4 h-4" />
+                    return (
+                      <div
+                        key={product.Name}
+                        className={`group ${cardStyling} rounded-2xl overflow-hidden transition-all duration-300 cursor-pointer transform hover:-translate-y-1 hover:scale-105 ${
+                          viewMode === 'list' ? 'flex' : ''
+                        } ${!isAvailable && selectedMeasurePoint && !showOnlyAvailableProducts ? '' : ''}`}
+                        onClick={() => {
+                          if (!selectedMeasurePoint || isAvailable || !showOnlyAvailableProducts) {
+                            onProductSelect?.(product.Name);
+                          }
+                        }}
+                      >
+                        {/* Product Image */}
+                        <div className={`relative overflow-hidden ${
+                          viewMode === 'list' ? 'w-40 flex-shrink-0' : 'h-48'
+                        }`}>
+                          <div className="absolute inset-0 bg-gradient-to-br from-gray-50 via-white to-gray-100"></div>
+                          <img
+                            src={getImageUrl(product)}
+                            alt={product.Name}
+                            className="relative w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.src = `/api/placeholder/400/300`;
+                            }}
+                          />
+
+                          {/* Technology Badge */}
+                          <div className="absolute top-3 left-3">
+                            <span className="px-2 py-1 rounded-lg text-xs font-bold bg-sikora-blue text-white shadow-lg backdrop-blur-sm">
+                              {techName}
+                            </span>
+                          </div>
+
+                          {/* Hover Overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300">
+                            <div className="absolute bottom-3 left-3 right-3">
+                              <div className="flex items-center justify-between text-white transform translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
+                                <span className="font-semibold bg-black/30 backdrop-blur-sm px-2 py-1 rounded text-sm">
+                                  {t('details', 'Details', 'Details')}
+                                </span>
+                                <ExternalLink className="w-4 h-4" />
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Product Info */}
+                        <div className={`p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}>
+                          <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-sikora-blue transition-colors leading-tight">
+                            {formatSikoraProductName(product.Name)}
+                          </h3>
+
+                          <div
+                            className="text-gray-600 text-sm line-clamp-3 mb-3 leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html: getProductDescription(product) || ''
+                            }}
+                          />
+
+                          {/* Action Footer */}
+                          <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                            <div className="flex items-center space-x-2 text-gray-500">
+                              <Eye className="w-4 h-4" />
+                              <span className="text-sm font-medium">{t('details', 'Details', 'Details')}</span>
+                            </div>
+                            <div className={`w-2 h-2 rounded-full ${
+                              !selectedMeasurePoint ? 'bg-green-500'
+                              : isAvailable ? 'bg-green-500' : 'bg-gray-400'
+                            }`} />
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Product Info */}
-                  <div className={`p-4 ${viewMode === 'list' ? 'flex-1' : ''}`}>
-                    <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-sikora-blue transition-colors leading-tight">
-                      {formatSikoraProductName(product.Name)}
-                    </h3>
-
-                    <div
-                      className="text-gray-600 text-sm line-clamp-3 mb-3 leading-relaxed"
-                      dangerouslySetInnerHTML={{
-                        __html: getProductDescription(product) || ''
-                      }}
-                    />
-
-                    {/* Action Footer */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <div className="flex items-center space-x-2 text-gray-500">
-                        <Eye className="w-4 h-4" />
-                        <span className="text-sm font-medium">{t('details', 'Details', 'Details')}</span>
-                      </div>
-                      <div className={`w-2 h-2 rounded-full ${
-                        !selectedMeasurePoint ? 'bg-green-500'
-                        : isAvailable ? 'bg-green-500' : 'bg-gray-400'
-                      }`} />
-                    </div>
-                  </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
 
-      {/* Reparierter Product Recommendation Wizard - direct Modal */}
+      {/* Reparierter Product Recommendation Wizard - ohne extra Modal */}
       {showWizard && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-auto">
-            <ProductRecommendationWizard
-              onClose={() => setShowWizard(false)}
-              onProductSelect={(productName) => {
-                setShowWizard(false);
-                onProductSelect?.(productName);
-              }}
-            />
-          </div>
-        </div>
+        <ProductRecommendationWizard
+          onClose={() => setShowWizard(false)}
+          onProductSelect={(productName) => {
+            setShowWizard(false);
+            onProductSelect?.(productName);
+          }}
+        />
       )}
 
       {/* Dimensions Modal */}
@@ -711,33 +919,38 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({
             <div className="p-6">
               <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl overflow-hidden" style={{ height: '500px' }}>
                 {get3DModelUrl(selectedProductForDimensions) ? (
-                  <Canvas camera={{ position: [2, 2, 2], fov: 45 }} className="w-full h-full">
-                    <Suspense fallback={null}>
-                      <Environment preset="city" />
-                      <ambientLight intensity={0.6} />
-                      <directionalLight position={[10, 10, 5]} intensity={1.2} />
-                      <ContactShadows position={[0, -0.5, 0]} opacity={0.4} scale={[30, 15]} blur={2} />
-                      <Model3D
-                        url={get3DModelUrl(selectedProductForDimensions) || ''}
-                        productName={selectedProductForDimensions.Name}
-                        onObjectLoad={(object) => setLoadedModel(object)}
-                      />
-                      <BoundingBoxVisualizer
-                        targetObject={loadedModel}
-                        visible={true}
-                        color="#003A62"
-                      />
-                      <OrbitControls
-                        enablePan={true}
-                        enableZoom={true}
-                        enableRotate={true}
-                        autoRotate={false}
-                        minDistance={1}
-                        maxDistance={8}
-                        maxPolarAngle={Math.PI / 1.8}
-                      />
+                  <Model3DErrorBoundary productName={selectedProductForDimensions.Name}>
+                    <Suspense fallback={
+                      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-sikora-blue"></div>
+                      </div>
+                    }>
+                      <Canvas camera={{ position: [2, 2, 2], fov: 45 }} className="w-full h-full">
+                        <Environment preset="city" />
+                        <ambientLight intensity={0.6} />
+                        <directionalLight position={[10, 10, 5]} intensity={1.2} />
+                        <Model3D
+                          url={get3DModelUrl(selectedProductForDimensions) || ''}
+                          productName={selectedProductForDimensions.Name}
+                          onObjectLoad={(object) => setLoadedModel(object)}
+                        />
+                        <BoundingBoxVisualizer
+                          targetObject={loadedModel}
+                          visible={true}
+                          color="#003A62"
+                        />
+                        <OrbitControls
+                          enablePan={true}
+                          enableZoom={true}
+                          enableRotate={true}
+                          autoRotate={false}
+                          minDistance={1}
+                          maxDistance={8}
+                          maxPolarAngle={Math.PI / 1.8}
+                        />
+                      </Canvas>
                     </Suspense>
-                  </Canvas>
+                  </Model3DErrorBoundary>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center">
                     <div className="text-center text-gray-400">

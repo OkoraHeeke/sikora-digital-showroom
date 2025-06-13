@@ -1,6 +1,14 @@
 # SIKORA Digital Showroom - Linienkonfigurator
 
-Eine moderne React-Anwendung für die Konfiguration von SIKORA Produktionslinien mit vollständiger Datenbank-Integration und 3D-Visualisierung.
+Eine moderne React-Web-Anwendung für die Konfiguration von SIKORA Produktionslinien mit vollständiger Datenbank-Integration und 3D-Visualisierung.
+
+## 🚀 Quick Start
+
+### Einfachster Start (Empfohlen)
+Doppelklick auf `start-sikora-showroom.bat` - Das Script überprüft alle Voraussetzungen und startet die Anwendung automatisch.
+
+### Alternative: Quick Start
+Doppelklick auf `QUICK_START.bat` für direkten Start (erfordert bereits installierte Dependencies).
 
 ## 🚀 Features
 
@@ -10,6 +18,7 @@ Eine moderne React-Anwendung für die Konfiguration von SIKORA Produktionslinien
 - **Responsive Design** für Desktop und Tablet
 - **TypeScript** für Type Safety
 - **Tailwind CSS** für schnelle Styling-Entwicklung
+- **Web-basiert** - läuft in jedem modernen Browser
 
 ## 📁 Projektstruktur
 
@@ -38,33 +47,27 @@ DB/                     # Datenbank & API
 
 ## 🛠 Installation & Setup
 
-### 1. Dependencies installieren
+### Automatischer Start (Empfohlen)
+1. Doppelklick auf `start-sikora-showroom.bat`
+2. Das Script überprüft Node.js, installiert Dependencies und startet die Anwendung
+3. Die App öffnet sich automatisch im Browser unter `http://localhost:5173`
 
+### Manueller Start
 ```bash
+# 1. Dependencies installieren
 npm install
-```
 
-### 2. Datenbank initialisieren
-
-```bash
+# 2. Datenbank initialisieren
 npm run db:init
-```
 
-### 3. API-Server starten
-
-```bash
+# 3. API-Server starten (in separatem Terminal)
 npm run db:server
-```
 
-Der API-Server läuft auf `http://localhost:3001`
-
-### 4. Frontend starten
-
-```bash
+# 4. Development Server starten
 npm run dev
 ```
 
-Die Anwendung ist erreichbar unter `http://localhost:3000`
+Die Anwendung ist erreichbar unter `http://localhost:5173`
 
 ## 🎨 Design-System
 
@@ -160,12 +163,13 @@ GET /api/products/:name/specifications # Produktspezifikationen
 ### Scripts
 
 ```bash
-npm run dev        # Development Server
+npm run dev        # Development Server (http://localhost:5173)
 npm run build      # Production Build
 npm run preview    # Preview Production Build
 npm run lint       # TypeScript Linting
 npm run db:init    # Datenbank initialisieren
-npm run db:server  # API-Server starten
+npm run db:server  # API-Server starten (http://localhost:3001)
+npm run start      # Startet Development Server
 ```
 
 ### Tech Stack

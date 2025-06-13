@@ -18,17 +18,17 @@ class SikoraDatabaseService implements DatabaseService {
   private baseUrl: string;
 
   constructor() {
-    // Environment detection for different deployment scenarios
+    // Determine the correct API base URL based on environment
     if (typeof window !== 'undefined') {
-      // Browser environment
+      // In browser environment
       if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-        // Development: Use Vite proxy
+        // Use Vite proxy in development
         this.baseUrl = '/api';
       } else if (window.location.hostname.includes('.netlify.app') || window.location.hostname.includes('.netlify.com')) {
-        // Netlify deployment: Use Netlify Functions
+        // Netlify Functions
         this.baseUrl = '/.netlify/functions/api';
       } else {
-        // Other production environments: Check for backend availability
+        // Other production environments
         this.baseUrl = '/api';
       }
     } else {
@@ -37,6 +37,7 @@ class SikoraDatabaseService implements DatabaseService {
     }
 
     console.log(`🔗 SIKORA API Base URL: ${this.baseUrl}`);
+    console.log(`🌍 Current hostname: ${typeof window !== 'undefined' ? window.location.hostname : 'SSR'}`);
   }
 
   private async fetchApi<T>(endpoint: string): Promise<T> {
@@ -196,7 +197,7 @@ class SikoraDatabaseService implements DatabaseService {
   // Scene Data für 3D-Rendering - mit statischen Objekten
   async getSceneData(sceneId: number): Promise<{ scene: Scene; measurePoints: MeasurePoint[]; staticObjects: any[] }> {
     try {
-      const sceneData = await this.fetchApi<any>(`/scenes/${sceneId}/data`);
+      const sceneData = await this.fetchApi<any>(`/scenes/${sceneId}/complete`);
       return sceneData;
     } catch (error) {
       console.error(`Scene data for ${sceneId} not found:`, error);

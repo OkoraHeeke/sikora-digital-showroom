@@ -53,13 +53,14 @@ function App() {
 
   // New state for views
   const [currentView, setCurrentView] = useState<'lineSelection' | 'configuration' | 'productCatalog' | 'productDetail' | 'admin'>('lineSelection');
-  const [previousView, setPreviousView] = useState<'lineSelection' | 'configuration' | 'productCatalog' | 'productDetail' | 'admin'>('lineSelection');
+  const [previousView, setPreviousView] = useState<'lineSelection' | 'configuration' | 'productDetail'>('lineSelection');
+  const [originalView, setOriginalView] = useState<'lineSelection' | 'configuration' | 'productDetail'>('lineSelection');
   const [sceneData, setSceneData] = useState<SceneData | null>(null);
   const [selectedProductDetails, setSelectedProductDetails] = useState<ProductWithDetails | null>(null);
   const [selectedProductName, setSelectedProductName] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [databaseConnected, setDatabaseConnected] = useState<boolean>(false);
-  const [adminSection, setAdminSection] = useState<string>('dashboard');
+  const [adminSection, setAdminSection] = useState('dashboard');
   const [showDimensions, setShowDimensions] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [showMeasurePointDialog, setShowMeasurePointDialog] = useState(false);
@@ -199,13 +200,15 @@ function App() {
   }, [updateState]);
 
   const handleShowProductCatalog = useCallback(() => {
-    setPreviousView(currentView);
+    setOriginalView(currentView as 'lineSelection' | 'configuration' | 'productDetail');
+    setPreviousView(currentView as 'lineSelection' | 'configuration' | 'productDetail');
     setCurrentView('productCatalog');
   }, [currentView]);
 
   const handleProductCatalogSelect = useCallback((productName: string) => {
     setSelectedProductName(productName);
-    setPreviousView('productCatalog');
+    // Don't change originalView - keep track of where we originally came from
+    setPreviousView('productCatalog' as any);
     setCurrentView('productDetail');
   }, []);
 
@@ -229,6 +232,7 @@ function App() {
 
       // Always go back to configuration view after loading to measure point
       setCurrentView('configuration');
+      setOriginalView('configuration');
       setPreviousView('configuration');
     }
   }, [state.selectedMeasurePoint, loadProductDetails]);
@@ -321,6 +325,7 @@ function App() {
 
   // New handler for catalog from sidebar
   const handleGoToCatalogFromSidebar = useCallback(() => {
+    setOriginalView('configuration');
     setPreviousView('configuration');
     setCurrentView('productCatalog');
   }, []);
@@ -352,6 +357,7 @@ function App() {
 
   // Debug: Log current view
   console.log('Current view:', currentView, 'Admin section:', adminSection);
+  console.log('Original view:', originalView, 'Previous view:', previousView);
 
   // Main render
   return (
@@ -427,15 +433,19 @@ function App() {
           {currentView === 'productCatalog' && (
             /* Product Catalog View */
             <ProductCatalog
-              onBackToLineSelection={handleBackFromProductCatalog}
+              onBackToLineSelection={
+                originalView === 'configuration' 
+                  ? () => setCurrentView('configuration')
+                  : handleBackFromProductCatalog
+              }
               onProductSelect={handleProductCatalogSelect}
               backButtonLabel={
-                previousView === 'configuration'
+                originalView === 'configuration'
                   ? "Zurück zur Szene"
                   : "Zurück zur Startseite"
               }
-              selectedMeasurePoint={previousView === 'configuration' ? selectedMeasurePointData : null}
-              showMeasurePointInfo={previousView === 'configuration'}
+              selectedMeasurePoint={selectedMeasurePointData}
+              showMeasurePointInfo={!!selectedMeasurePointData}
             />
           )}
 

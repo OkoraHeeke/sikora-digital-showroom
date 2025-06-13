@@ -46,12 +46,15 @@ declare global {
 
 // Check if we're running in Electron
 const isElectron = window.electronAPI?.isElectron || false;
-const API_BASE_URL = 'http://localhost:3001/api';
+// Use relative URLs in browser to work with Vite proxy, absolute URLs in Electron
+const API_BASE_URL = isElectron ? 'http://localhost:3001/api' : '/api';
 
 // Generic HTTP fetch function
-async function fetchAPI(endpoint: string): Promise<any> {
+async function fetchAPI(endpoint: string, options?: RequestInit): Promise<any> {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    const fullUrl = `${API_BASE_URL}${endpoint}`;
+    console.log(`API Request: ${fullUrl}`); // Debug log
+    const response = await fetch(fullUrl, options);
     const data = await response.json();
     return data;
   } catch (error) {
@@ -113,11 +116,34 @@ export const api = {
     return fetchAPI(`/measurepoints/${id}/products`);
   },
 
+  // Get only directly assigned products for a measure point (not fallback products)
+  async getMeasurePointAssignedProducts(id: string | number) {
+    return fetchAPI(`/measurepoints/${id}/assigned-products`);
+  },
+
   async getMeasurePointParameters(id: string | number) {
     if (isElectron && window.electronAPI) {
       return window.electronAPI.getMeasurePointParameters(id);
     }
     return fetchAPI(`/measurepoints/${id}/parameters`);
+  },
+
+  // Assign products to measure point
+  async assignProductsToMeasurePoint(measurePointId: string | number, productNames: string[]) {
+    return fetchAPI(`/measurepoints/${measurePointId}/assign-products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ productNames }),
+    });
+  },
+
+  // Unassign product from measure point
+  async unassignProductFromMeasurePoint(measurePointId: string | number, productName: string) {
+    return fetchAPI(`/measurepoints/${measurePointId}/unassign-product/${encodeURIComponent(productName)}`, {
+      method: 'DELETE',
+    });
   },
 
   // Products
@@ -133,6 +159,36 @@ export const api = {
       return window.electronAPI.getProduct(name);
     }
     return fetchAPI(`/products/${encodeURIComponent(name)}`);
+  },
+
+  // Create product
+  async createProduct(productData: any) {
+    return fetchAPI('/products', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(productData),
+    });
+  },
+
+  // Update product
+  async updateProduct(name: string, productData: any) {
+    return fetchAPI(`/products/${encodeURIComponent(name)}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(productData),
+    });
+  },
+
+  // Delete product
+  async deleteProduct(name: string) {
+    console.log(`Deleting product: ${name}`); // Debug log
+    return fetchAPI(`/products/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+    });
   },
 
   async getProductSpecifications(name: string) {

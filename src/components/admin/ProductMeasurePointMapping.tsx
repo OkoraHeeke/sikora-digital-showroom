@@ -15,6 +15,7 @@ import {
   Target
 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { api } from '../../api';
 import type { MeasurePoint, Product, Scene } from '../../types';
 
 interface ProductMeasurePointMapping {
@@ -48,15 +49,11 @@ const ProductMeasurePointMapping: React.FC = () => {
       setLoading(true);
 
       // Parallel laden aller Daten
-      const [scenesRes, measurePointsRes, productsRes] = await Promise.all([
-        fetch('/api/scenes'),
-        fetch('/api/measurepoints'),
-        fetch('/api/products')
+      const [scenesData, measurePointsData, productsData] = await Promise.all([
+        api.getScenes(),
+        api.getMeasurePoints(),
+        api.getProducts()
       ]);
-
-      const scenesData = await scenesRes.json();
-      const measurePointsData = await measurePointsRes.json();
-      const productsData = await productsRes.json();
 
       if (scenesData.success) setScenes(scenesData.data);
       if (measurePointsData.success) setMeasurePoints(measurePointsData.data);
@@ -78,8 +75,8 @@ const ProductMeasurePointMapping: React.FC = () => {
 
     for (const mp of measurePoints) {
       try {
-        const productsRes = await fetch(`/api/measurepoints/${mp.Id}/products`);
-        const productsData = await productsRes.json();
+        // Use the assigned-products endpoint to get only directly assigned products
+        const productsData = await api.getMeasurePointAssignedProducts(mp.Id);
 
         const scene = scenes.find(s => s.Id === mp.Scene_Id);
 
@@ -117,21 +114,23 @@ const ProductMeasurePointMapping: React.FC = () => {
     if (!selectedMeasurePoint || selectedProducts.length === 0) return;
 
     try {
-      // Hier würden wir API-Calls machen, um die Zuordnungen zu speichern
-      // Da die API noch nicht existiert, simulieren wir es
-      console.log('Assigning products to measure point:', {
-        measurePointId: selectedMeasurePoint,
-        products: selectedProducts
-      });
+      const result = await api.assignProductsToMeasurePoint(selectedMeasurePoint, selectedProducts);
 
-      // Reload mappings
-      await loadMappings(measurePoints);
+      if (result.success) {
+        // Reload mappings
+        await loadMappings(measurePoints);
 
-      setShowAssignDialog(false);
-      setSelectedProducts([]);
-      setSelectedMeasurePoint(null);
+        setShowAssignDialog(false);
+        setSelectedProducts([]);
+        setSelectedMeasurePoint(null);
+        alert('Produkte erfolgreich zugeordnet!');
+      } else {
+        console.error('Failed to assign products:', result.error);
+        alert('Fehler beim Zuordnen der Produkte: ' + (result.error || 'Unbekannter Fehler'));
+      }
     } catch (error) {
       console.error('Failed to assign products:', error);
+      alert('Fehler beim Zuordnen der Produkte: ' + error);
     }
   };
 
@@ -142,16 +141,19 @@ const ProductMeasurePointMapping: React.FC = () => {
     }
 
     try {
-      // Hier würde API-Call für das Entfernen gemacht
-      console.log('Unassigning product from measure point:', {
-        measurePointId,
-        productName
-      });
+      const result = await api.unassignProductFromMeasurePoint(measurePointId, productName);
 
-      // Reload mappings
-      await loadMappings(measurePoints);
+      if (result.success) {
+        // Reload mappings
+        await loadMappings(measurePoints);
+        alert('Produkt erfolgreich entfernt!');
+      } else {
+        console.error('Failed to unassign product:', result.error);
+        alert('Fehler beim Entfernen des Produkts: ' + (result.error || 'Unbekannter Fehler'));
+      }
     } catch (error) {
       console.error('Failed to unassign product:', error);
+      alert('Fehler beim Entfernen des Produkts: ' + error);
     }
   };
 

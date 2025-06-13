@@ -12,6 +12,7 @@ import {
   Package
 } from 'lucide-react';
 import { useLanguage } from '../../contexts/LanguageContext';
+import { api } from '../../api';
 import type { Product, ProductCategory } from '../../types';
 
 interface ProductFormData {
@@ -47,13 +48,10 @@ const ProductManagement: React.FC = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [productsRes, categoriesRes] = await Promise.all([
-        fetch('/api/products'),
-        fetch('/api/categories')
+      const [productsData, categoriesData] = await Promise.all([
+        api.getProducts(),
+        api.getCategories()
       ]);
-
-      const productsData = await productsRes.json();
-      const categoriesData = await categoriesRes.json();
 
       if (productsData.success) setProducts(productsData.data);
       if (categoriesData.success) setCategories(categoriesData.data);
@@ -104,28 +102,23 @@ const ProductManagement: React.FC = () => {
     e.preventDefault();
     
     try {
-      const url = editingProduct 
-        ? `/api/products/${encodeURIComponent(editingProduct.Name)}`
-        : '/api/products';
-      
-      const method = editingProduct ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData)
-      });
+      let result;
+      if (editingProduct) {
+        result = await api.updateProduct(editingProduct.Name, formData);
+      } else {
+        result = await api.createProduct(formData);
+      }
 
-      if (response.ok) {
+      if (result.success) {
         await loadData();
         resetForm();
       } else {
-        console.error('Failed to save product');
+        console.error('Failed to save product:', result.error);
+        alert('Fehler beim Speichern des Produkts: ' + (result.error || 'Unbekannter Fehler'));
       }
     } catch (error) {
       console.error('Error saving product:', error);
+      alert('Fehler beim Speichern des Produkts: ' + error);
     }
   };
 
@@ -136,17 +129,18 @@ const ProductManagement: React.FC = () => {
     }
 
     try {
-      const response = await fetch(`/api/products/${encodeURIComponent(productName)}`, {
-        method: 'DELETE'
-      });
+      const result = await api.deleteProduct(productName);
 
-      if (response.ok) {
+      if (result.success) {
         await loadData();
+        alert('Produkt erfolgreich gelöscht!');
       } else {
-        console.error('Failed to delete product');
+        console.error('Failed to delete product:', result.error);
+        alert('Fehler beim Löschen des Produkts: ' + (result.error || 'Unbekannter Fehler'));
       }
     } catch (error) {
       console.error('Error deleting product:', error);
+      alert('Fehler beim Löschen des Produkts: ' + error);
     }
   };
 

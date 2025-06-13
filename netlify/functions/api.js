@@ -1,233 +1,211 @@
 const express = require('express');
 const serverless = require('serverless-http');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
 
 const app = express();
 app.use(express.json());
 
-// Database setup for serverless
-let db;
-
-const initDatabase = () => {
-  if (!db) {
-    // For Netlify Functions, always use in-memory database with complete data
-    console.log('Initializing in-memory database with complete SIKORA data');
-    db = new sqlite3.Database(':memory:');
-    
-    // Create tables and populate with real data
-    db.serialize(() => {
-      // Create tables
-      db.run(`CREATE TABLE Scene (
-        Id INTEGER PRIMARY KEY,
-        Name_EN TEXT,
-        Name_DE TEXT,
-        CameraStartX REAL DEFAULT 0,
-        CameraStartY REAL DEFAULT 5,
-        CameraStartZ REAL DEFAULT 10
-      )`);
-      
-      db.run(`CREATE TABLE MeasurePoint (
-        Id INTEGER PRIMARY KEY,
-        Name_EN TEXT,
-        Name_DE TEXT,
-        SpacePosX REAL DEFAULT 0,
-        SpacePosY REAL DEFAULT 0,
-        SpacePosZ REAL DEFAULT 0,
-        Scene_Id INTEGER
-      )`);
-      
-      db.run(`CREATE TABLE Product (
-        Name TEXT PRIMARY KEY,
-        Object3D_Url TEXT,
-        Description_EN TEXT,
-        Description_DE TEXT
-      )`);
-      
-      // Insert real SIKORA data
-      db.run(`INSERT INTO Scene (Id, Name_EN, Name_DE, CameraStartX, CameraStartY, CameraStartZ) 
-              VALUES (1, 'Wire & Cable CV Line', 'Draht & Kabel CV Linie', 3.0, 3.0, 3.0)`);
-      
-      db.run(`INSERT INTO MeasurePoint (Id, Name_EN, Name_DE, SpacePosX, SpacePosY, SpacePosZ, Scene_Id) VALUES 
-        (1, 'Inlet Zone', 'Einzugszone', -12.31, 0.0, 0.0, 1),
-        (2, 'Extrusion Zone', 'Extruderschmelze', -0.03, 0.0, 0.0, 1),
-        (3, 'After Extruder', 'Nach Extruder', 0.0, 0.0, 0.0, 1),
-        (4, 'Cooling Zone', 'Kühlzone', 13.63, 0.0, 0.0, 1),
-        (5, 'Wall Thickness/Eccentricity', 'Wanddicke/Exzentrizität', 4.85, 1.0, 0.0, 1)`);
-      
-      db.run(`INSERT INTO Product (Name, Object3D_Url, Description_EN, Description_DE) VALUES 
-        ('CENTERVIEW 8000', '/api/assets/models/CENTERVIEW_8000.glb', 'CENTERVIEW 8000 laser measurement', 'CENTERVIEW 8000 Lasermessung'),
-        ('X-RAY 8000 NXT', '/api/assets/models/X-RAY_8000_NXT.glb', 'X-RAY 8000 NXT wall thickness measurement', 'X-RAY 8000 NXT Wanddickenmessung'),
-        ('LASER 2000 D', '/api/assets/models/LASER_2000_D.glb', 'LASER 2000 D diameter measurement', 'LASER 2000 D Durchmessermessung'),
-        ('SPARK 8000', '/api/assets/models/SPARK_8000.glb', 'SPARK 8000 spark testing', 'SPARK 8000 Funkenprüfung'),
-        ('PREHEATER 6000', '/api/assets/models/PREHEATER_6000.glb', 'PREHEATER 6000 conductor preheating', 'PREHEATER 6000 Leitervorheizung')`);
-      
-      console.log('Database initialized with complete SIKORA product data');
-    });
-  }
-  return db;
+// Simple in-memory data store (no sqlite3 dependency issues)
+const data = {
+  scenes: [
+    {
+      Id: 1,
+      Name_EN: 'Wire & Cable CV Line',
+      Name_DE: 'Draht & Kabel CV Linie',
+      CameraStartX: 3.0,
+      CameraStartY: 3.0,
+      CameraStartZ: 3.0,
+    }
+  ],
+  measurePoints: [
+    {
+      Id: 1,
+      Name_EN: 'Inlet Zone',
+      Name_DE: 'Einzugszone',
+      SpacePosX: -12.31,
+      SpacePosY: 0.0,
+      SpacePosZ: 0.0,
+      Scene_Id: 1,
+    },
+    {
+      Id: 2,
+      Name_EN: 'Extrusion Zone',
+      Name_DE: 'Extruderschmelze',
+      SpacePosX: -0.03,
+      SpacePosY: 0.0,
+      SpacePosZ: 0.0,
+      Scene_Id: 1,
+    },
+    {
+      Id: 3,
+      Name_EN: 'After Extruder',
+      Name_DE: 'Nach Extruder',
+      SpacePosX: 0.0,
+      SpacePosY: 0.0,
+      SpacePosZ: 0.0,
+      Scene_Id: 1,
+    },
+    {
+      Id: 4,
+      Name_EN: 'Cooling Zone',
+      Name_DE: 'Kühlzone',
+      SpacePosX: 13.63,
+      SpacePosY: 0.0,
+      SpacePosZ: 0.0,
+      Scene_Id: 1,
+    },
+    {
+      Id: 5,
+      Name_EN: 'Wall Thickness/Eccentricity',
+      Name_DE: 'Wanddicke/Exzentrizität',
+      SpacePosX: 4.85,
+      SpacePosY: 1.0,
+      SpacePosZ: 0.0,
+      Scene_Id: 1,
+    }
+  ],
+  products: [
+    {
+      Name: 'CENTERVIEW 8000',
+      Object3D_Url: '/api/assets/models/CENTERVIEW_8000.glb',
+      Description_EN: 'CENTERVIEW 8000 laser measurement',
+      Description_DE: 'CENTERVIEW 8000 Lasermessung'
+    },
+    {
+      Name: 'X-RAY 8000 NXT',
+      Object3D_Url: '/api/assets/models/X-RAY_8000_NXT.glb',
+      Description_EN: 'X-RAY 8000 NXT wall thickness measurement',
+      Description_DE: 'X-RAY 8000 NXT Wanddickenmessung'
+    },
+    {
+      Name: 'LASER 2000 D',
+      Object3D_Url: '/api/assets/models/LASER_2000_D.glb',
+      Description_EN: 'LASER 2000 D diameter measurement',
+      Description_DE: 'LASER 2000 D Durchmessermessung'
+    },
+    {
+      Name: 'SPARK 8000',
+      Object3D_Url: '/api/assets/models/SPARK_8000.glb',
+      Description_EN: 'SPARK 8000 spark testing',
+      Description_DE: 'SPARK 8000 Funkenprüfung'
+    },
+    {
+      Name: 'PREHEATER 6000',
+      Object3D_Url: '/api/assets/models/PREHEATER_6000.glb',
+      Description_EN: 'PREHEATER 6000 conductor preheating',
+      Description_DE: 'PREHEATER 6000 Leitervorheizung'
+    }
+  ]
 };
 
-// Helper functions
-const sendResponse = (res, data, error = null) => {
+// Helper function for API responses
+const sendResponse = (res, responseData, error = null) => {
   if (error) {
     console.error('API Error:', error);
     res.status(500).json({ success: false, error: error.message });
   } else {
-    res.json({ success: true, data });
+    res.json({ success: true, data: responseData });
   }
-};
-
-const queryDb = (sql, params = []) => {
-  return new Promise((resolve, reject) => {
-    const database = initDatabase();
-    database.all(sql, params, (err, rows) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(rows);
-      }
-    });
-  });
 };
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ success: true, data: { status: 'OK', timestamp: new Date().toISOString() } });
+  console.log('Health check called');
+  res.json({ 
+    success: true, 
+    data: { 
+      status: 'OK', 
+      timestamp: new Date().toISOString(),
+      message: 'SIKORA API is running' 
+    } 
+  });
 });
 
 // Scenes
-app.get('/scenes', async (req, res) => {
-  try {
-    const scenes = await queryDb('SELECT * FROM Scene ORDER BY Id');
-    sendResponse(res, scenes);
-  } catch (error) {
-    sendResponse(res, null, error);
-  }
+app.get('/scenes', (req, res) => {
+  console.log('Scenes requested');
+  sendResponse(res, data.scenes);
 });
 
-app.get('/scenes/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const scenes = await queryDb('SELECT * FROM Scene WHERE Id = ?', [id]);
-    const scene = scenes.length > 0 ? scenes[0] : null;
-    sendResponse(res, scene);
-  } catch (error) {
-    sendResponse(res, null, error);
-  }
+app.get('/scenes/:id', (req, res) => {
+  const { id } = req.params;
+  const scene = data.scenes.find(s => s.Id == id);
+  sendResponse(res, scene);
 });
 
 // Scene data (combined endpoint)
-app.get('/scenes/:sceneId/data', async (req, res) => {
-  try {
-    const { sceneId } = req.params;
-    
-    // Get scene
-    const scenes = await queryDb('SELECT * FROM Scene WHERE Id = ?', [sceneId]);
-    const scene = scenes.length > 0 ? scenes[0] : null;
-    
-    if (!scene) {
-      return sendResponse(res, null, new Error('Scene not found'));
-    }
-    
-    // Get measure points
-    const measurePoints = await queryDb(
-      'SELECT * FROM MeasurePoint WHERE Scene_Id = ? ORDER BY Id',
-      [sceneId]
-    );
-    
-    // Static objects (fallback)
-    const staticObjects = [{
-      id: 'neuelinie',
-      url: '/api/assets/neuelinie.glb',
-      position: [0, 0, 0],
-      rotation: [0, 0, 0],
-      scale: [1, 1, 1]
-    }];
-    
-    const sceneData = {
-      scene,
-      measurePoints,
-      staticObjects
-    };
-    
-    sendResponse(res, sceneData);
-  } catch (error) {
-    sendResponse(res, null, error);
+app.get('/scenes/:sceneId/data', (req, res) => {
+  const { sceneId } = req.params;
+  console.log('Scene data requested for ID:', sceneId);
+  
+  const scene = data.scenes.find(s => s.Id == sceneId);
+  if (!scene) {
+    return sendResponse(res, null, new Error('Scene not found'));
   }
+  
+  const measurePoints = data.measurePoints.filter(mp => mp.Scene_Id == sceneId);
+  
+  // Static objects (fallback)
+  const staticObjects = [{
+    id: 'neuelinie',
+    url: '/api/assets/neuelinie.glb',
+    position: [0, 0, 0],
+    rotation: [0, 0, 0],
+    scale: [1, 1, 1]
+  }];
+  
+  const sceneData = {
+    scene,
+    measurePoints,
+    staticObjects
+  };
+  
+  sendResponse(res, sceneData);
 });
 
 // Measure points
-app.get('/measurepoints', async (req, res) => {
-  try {
-    const measurePoints = await queryDb('SELECT * FROM MeasurePoint ORDER BY Id');
-    sendResponse(res, measurePoints);
-  } catch (error) {
-    sendResponse(res, null, error);
-  }
+app.get('/measurepoints', (req, res) => {
+  sendResponse(res, data.measurePoints);
 });
 
-app.get('/scenes/:sceneId/measurepoints', async (req, res) => {
-  try {
-    const { sceneId } = req.params;
-    const measurePoints = await queryDb(
-      'SELECT * FROM MeasurePoint WHERE Scene_Id = ? ORDER BY Id',
-      [sceneId]
-    );
-    sendResponse(res, measurePoints);
-  } catch (error) {
-    sendResponse(res, null, error);
-  }
+app.get('/scenes/:sceneId/measurepoints', (req, res) => {
+  const { sceneId } = req.params;
+  const measurePoints = data.measurePoints.filter(mp => mp.Scene_Id == sceneId);
+  sendResponse(res, measurePoints);
 });
 
 // Products
-app.get('/products', async (req, res) => {
-  try {
-    const products = await queryDb('SELECT * FROM Product ORDER BY Name');
-    sendResponse(res, products);
-  } catch (error) {
-    sendResponse(res, null, error);
-  }
+app.get('/products', (req, res) => {
+  console.log('Products requested');
+  sendResponse(res, data.products);
 });
 
-app.get('/products/:name', async (req, res) => {
-  try {
-    const { name } = req.params;
-    const products = await queryDb('SELECT * FROM Product WHERE Name = ?', [decodeURIComponent(name)]);
-    const product = products.length > 0 ? products[0] : null;
-    sendResponse(res, product);
-  } catch (error) {
-    sendResponse(res, null, error);
-  }
+app.get('/products/:name', (req, res) => {
+  const { name } = req.params;
+  const product = data.products.find(p => p.Name === decodeURIComponent(name));
+  sendResponse(res, product);
 });
 
-// Products for measure point (simplified)
-app.get('/measurepoints/:id/products', async (req, res) => {
-  try {
-    // For now, return all products (simplified)
-    const products = await queryDb('SELECT * FROM Product ORDER BY Name');
-    sendResponse(res, products);
-  } catch (error) {
-    sendResponse(res, null, error);
-  }
+// Products for measure point
+app.get('/measurepoints/:id/products', (req, res) => {
+  // Return all products for simplicity
+  sendResponse(res, data.products);
 });
 
-// Static file serving (assets)
+// Static file serving placeholder
 app.get('/assets/*', (req, res) => {
-  const filePath = req.path.replace('/assets/', '');
-  const fullPath = path.join(__dirname, '../../assets/', filePath);
-  
-  if (fs.existsSync(fullPath)) {
-    res.sendFile(fullPath);
-  } else {
-    res.status(404).json({ success: false, error: 'File not found' });
-  }
+  res.status(404).json({ success: false, error: 'Static files not available in this environment' });
 });
 
 // Fallback for any unmatched routes
 app.use('*', (req, res) => {
-  res.status(404).json({ success: false, error: 'Endpoint not found' });
+  console.log('Unknown route requested:', req.path);
+  res.status(404).json({ success: false, error: 'Endpoint not found', path: req.path });
+});
+
+// Add error handling
+app.use((error, req, res, next) => {
+  console.error('Express error:', error);
+  res.status(500).json({ success: false, error: 'Internal server error' });
 });
 
 module.exports.handler = serverless(app);
